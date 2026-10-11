@@ -1,0 +1,27 @@
+[
+  [
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "bounds.py"
+      }
+    }
+  ],
+  [
+    {
+      "name": "write_file",
+      "arguments": {
+        "path": "bounds.py",
+        "content": "def clamp(value, lower, upper):\n    if lower > upper:\n        raise ValueError('lower must not exceed upper')\n    return max(lower, min(value, upper))\n"
+      }
+    }
+  ],
+  [
+    {
+      "name": "submit",
+      "arguments": {
+        "summary": "Deterministic fixture correction; not model-generated."
+      }
+    }
+  ]
+]

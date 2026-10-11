@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "mean-empty",
+  "description": "修复 mean(values)：计算数值序列的算术平均数；空序列应抛出 ValueError，不应返回 0。",
+  "acceptance": [
+    "非空序列返回算术平均数，支持负数和浮点数。",
+    "空序列抛出 ValueError。",
+    "不得修改输入序列。"
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "stats.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

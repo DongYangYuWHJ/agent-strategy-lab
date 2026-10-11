@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "mock-pass",
+      "provider": "mock",
+      "model": "fixture-pass",
+      "mock_behavior": "pass",
+      "max_output_tokens": 512,
+      "pricing": {
+        "input": "1",
+        "output": "2",
+        "cached_input": "0",
+        "cache_write": "0",
+        "source": "synthetic fixture rates, not API prices"
+      }
+    },
+    {
+      "id": "mock-stuck",
+      "provider": "mock",
+      "model": "fixture-stuck",
+      "mock_behavior": "stuck",
+      "max_output_tokens": 512,
+      "pricing": {
+        "input": "1",
+        "output": "2",
+        "cached_input": "0",
+        "cache_write": "0",
+        "source": "synthetic fixture rates, not API prices"
+      }
+    }
+  ]
+}

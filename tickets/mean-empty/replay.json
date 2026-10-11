@@ -1,0 +1,27 @@
+[
+  [
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "stats.py"
+      }
+    }
+  ],
+  [
+    {
+      "name": "write_file",
+      "arguments": {
+        "path": "stats.py",
+        "content": "def mean(values):\n    if not values:\n        raise ValueError('values must not be empty')\n    return sum(values) / len(values)\n"
+      }
+    }
+  ],
+  [
+    {
+      "name": "submit",
+      "arguments": {
+        "summary": "Deterministic fixture correction; not model-generated."
+      }
+    }
+  ]
+]

@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "notes": "Short-context Standard USD/1M rates. DeepSeek uses peak rates conservatively even off-peak; estimated cost is not an invoice. Reverify before live batches.",
+  "models": [
+    {
+      "id": "gpt-6-luna",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "pricing": {
+        "input": "0.10",
+        "output": "0.50",
+        "cached_input": "0.01",
+        "cache_write": "0.125",
+        "verified_on": "2026-10-10",
+        "source": "https://developers.openai.com/api/docs/models/gpt-6-luna"
+      },
+      "max_output_tokens": 2048,
+      "reasoning_effort": "medium"
+    },
+    {
+      "id": "deepseek-flash",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "pricing": {
+        "input": "0.30",
+        "output": "1.20",
+        "cached_input": "0.006",
+        "cache_write": "0",
+        "verified_on": "2026-10-10",
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "max_output_tokens": 2048,
+      "reasoning_effort": "low"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "pricing": {
+        "input": "2",
+        "output": "10",
+        "cached_input": "0.10",
+        "cache_write": "2.50",
+        "verified_on": "2026-10-10",
+        "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol"
+      },
+      "max_output_tokens": 2048,
+      "reasoning_effort": "medium"
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "pricing": {
+        "input": "2",
+        "output": "10",
+        "cached_input": "0.10",
+        "cache_write": "2.50",
+        "verified_on": "2026-10-10",
+        "source": "https://platform.claude.com/docs/en/about-claude/pricing"
+      },
+      "max_output_tokens": 2048,
+      "reasoning_effort": "medium"
+    },
+    {
+      "id": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "pricing": {
+        "input": "0.10",
+        "output": "0.50",
+        "cached_input": "0.01",
+        "cache_write": "0.125",
+        "verified_on": "2026-10-10",
+        "source": "https://platform.claude.com/docs/en/about-claude/pricing"
+      },
+      "max_output_tokens": 2048,
+      "reasoning_effort": "medium"
+    },
+    {
+      "id": "gpt-6-astra",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "pricing": {
+        "input": "10",
+        "output": "50",
+        "cached_input": "1",
+        "cache_write": "12.50",
+        "verified_on": "2026-10-10",
+        "source": "https://developers.openai.com/api/docs/models/gpt-6-astra"
+      },
+      "max_output_tokens": 2048,
+      "reasoning_effort": "medium"
+    },
+    {
+      "id": "claude-fable-5-1",
+      "provider": "anthropic",
+      "model": "claude-fable-5-1",
+      "pricing": {
+        "input": "10",
+        "output": "50",
+        "cached_input": "0.25",
+        "cache_write": "12.50",
+        "verified_on": "2026-10-10",
+        "source": "https://platform.claude.com/docs/en/models/fable-5-1/overview"
+      },
+      "max_output_tokens": 2048,
+      "reasoning_effort": "medium"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "clamp-boundaries",
+  "description": "修复 clamp(value, lower, upper)：把值限制在闭区间内；下界大于上界时抛出 ValueError。",
+  "acceptance": [
+    "值低于下界返回下界；高于上界返回上界；区间内保持原值。",
+    "支持负数和浮点数；相等边界有效。",
+    "lower > upper 必须抛出 ValueError。"
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "bounds.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

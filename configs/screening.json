@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "strategy": "single_agent",
+  "models": [
+    "gpt-6-luna",
+    "deepseek-flash",
+    "gpt-6.1-sol",
+    "claude-sonnet-5-5",
+    "claude-haiku-5-5",
+    "gpt-6-astra",
+    "claude-fable-5-1"
+  ],
+  "task_globs": [
+    "../tickets/*/task.json"
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "5.00",
+  "limits": {
+    "max_calls": 12,
+    "max_tool_steps": 30,
+    "max_repairs": 2,
+    "max_no_progress": 2,
+    "max_total_tokens": 100000,
+    "max_request_bytes": 32000,
+    "max_seconds": 180,
+    "check_timeout_seconds": 15,
+    "max_cost_usd": "1.00"
+  }
+}
