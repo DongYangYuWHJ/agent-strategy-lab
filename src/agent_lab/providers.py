@@ -1,11 +1,11 @@
 """Native tool protocols behind one execution interface. No SDK dependency."""
 from dataclasses import asdict
 import json
-import os
 import socket
 import urllib.error
 import urllib.request
 from .domain import AgentReply, Model, ToolCall, Usage, read_json
+from .settings import require_credential
 
 
 class ProviderError(Exception):
@@ -72,8 +72,7 @@ class Provider:
 
 class OpenAIProvider(Provider):
     def preflight(self):
-        if not os.environ.get("OPENAI_API_KEY"):
-            raise ValueError("Set OPENAI_API_KEY in your local environment before running this model")
+        self._api_key = require_credential("openai")
 
     def prepare(self):
         return {"model": self.model.model, "instructions": self.system, "input": self.messages,
@@ -84,7 +83,7 @@ class OpenAIProvider(Provider):
 
     def send(self, payload, timeout):
         return request_json("https://api.openai.com/v1/responses", payload,
-                            {"Authorization": "Bearer " + os.environ["OPENAI_API_KEY"]}, timeout)
+                            {"Authorization": "Bearer " + self._api_key}, timeout)
 
     def usage(self, raw):
         usage = raw["usage"]
@@ -110,8 +109,7 @@ class OpenAIProvider(Provider):
 
 class DeepSeekProvider(Provider):
     def preflight(self):
-        if not os.environ.get("DEEPSEEK_API_KEY"):
-            raise ValueError("Set DEEPSEEK_API_KEY in your local environment before running this model")
+        self._api_key = require_credential("deepseek")
 
     def prepare(self):
         return {"model": self.model.model,
@@ -123,7 +121,7 @@ class DeepSeekProvider(Provider):
 
     def send(self, payload, timeout):
         return request_json("https://api.deepseek.com/chat/completions", payload,
-                            {"Authorization": "Bearer " + os.environ["DEEPSEEK_API_KEY"]}, timeout)
+                            {"Authorization": "Bearer " + self._api_key}, timeout)
 
     def usage(self, raw):
         usage = raw["usage"]
@@ -146,8 +144,7 @@ class DeepSeekProvider(Provider):
 
 class AnthropicProvider(Provider):
     def preflight(self):
-        if not os.environ.get("ANTHROPIC_API_KEY"):
-            raise ValueError("Set ANTHROPIC_API_KEY in your local environment before running this model")
+        self._api_key = require_credential("anthropic")
 
     def prepare(self):
         return {"model": self.model.model, "system": self.system, "messages": self.messages,
@@ -158,7 +155,7 @@ class AnthropicProvider(Provider):
 
     def send(self, payload, timeout):
         return request_json("https://api.anthropic.com/v1/messages", payload,
-                            {"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01"}, timeout)
+                            {"x-api-key": self._api_key, "anthropic-version": "2023-06-01"}, timeout)
 
     def usage(self, raw):
         usage = raw["usage"]

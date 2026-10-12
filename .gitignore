@@ -2,6 +2,7 @@ __pycache__/
 *.py[cod]
 .venv/
 .env
+settings.local.json
 artifacts/
 *.egg-info/
 build/

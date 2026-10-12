@@ -8,6 +8,7 @@ from .domain import Limits, Task, load_models, read_json
 from .experiments import load_experiment, run_batch
 from .reporting import write_report
 from .runner import run_task
+from .settings import KEY_NAMES, resolve_credential
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,11 +19,12 @@ def new_output(label):
 
 
 def main(argv=None):
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="AI 架构实验平台：任务、单 Agent、验收、用量与成本")
     commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("check-settings", help="检查密钥配置状态，不显示密钥、不调用 API")
     demo = commands.add_parser("demo", help="离线模拟试跑三个任务，不调用 API")
     demo.add_argument("--output", type=Path)
     batch = commands.add_parser("batch", help="运行或继续实验批次")
@@ -48,7 +50,13 @@ def main(argv=None):
     task_list.add_argument("--json", action="store_true", help="输出可供其他程序读取的 JSON 数组")
     args = parser.parse_args(argv)
     try:
-        if args.command == "demo":
+        if args.command == "check-settings":
+            labels = {"environment": "环境变量", "local_file": "本地文件", "missing": "未配置"}
+            for name in KEY_NAMES:
+                key, source = resolve_credential(name)
+                print(f"{name}: {'已配置' if key else '未配置'}（{labels[source]}）")
+            print("仅检查本地配置；余额、密钥有效性与模型权限需要在线验证。")
+        elif args.command == "demo":
             output = args.output or new_output("demo")
             manifest = run_batch(ROOT / "configs" / "demo.json", load_models(ROOT / "configs" / "mock_models.json"), output)
             print(f"模拟批次：{manifest['status']}\n报告：{output.resolve() / 'report.md'}")

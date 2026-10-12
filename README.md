@@ -25,9 +25,21 @@
 
 `configs/models.json` 保存七个候选模型及价格来源；`configs/screening.json` 自动扫描 `tickets/*/task.json`（目前三个任务）、一次重复、固定随机运行顺序，批次预算为 5 美元、单次预算为 1 美元。这是流程试跑配置，不足以证明能力排名。价格资料记录于 2026-10-10，执行前应重新核对。
 
-API 密钥只通过当前终端的环境变量读取：OpenAI 使用 `OPENAI_API_KEY`，DeepSeek 使用 `DEEPSEEK_API_KEY`，Anthropic 使用 `ANTHROPIC_API_KEY`。不要把密钥写进任务、配置或版本库。框架不自动读取 `.env`。
+API 密钥支持项目根目录的 `settings.local.json`。这台电脑已创建空文件；新克隆的项目先复制 `settings.example.json` 为 `settings.local.json`，再填写对应的 `api_key`：`openai` 是 OpenAI API，`deepseek` 是 DeepSeek，`anthropic` 是 Claude API。同一供应商的多个模型共用密钥；未使用的供应商留空。
 
-已在本地环境配置好相应密钥后，可先只运行两个廉价候选：
+本地密钥文件已加入 Git 忽略规则，空白示例可以提交。密钥独立于模型目录，不进入冻结配置、提示词或请求／响应日志，也不注入验收子进程环境；供应商接口通过 HTTPS 请求头使用它。文件仍是本地明文，Git 忽略不提供加密或 OS 隔离，当前检查进程的宿主权限限制仍然适用。
+
+环境变量优先于本地文件：OpenAI 使用 `OPENAI_API_KEY`，DeepSeek 使用 `DEEPSEEK_API_KEY`，Anthropic 使用 `ANTHROPIC_API_KEY`。这样自动化运行可以沿用环境变量。本地文件不修改系统环境变量；框架不自动读取 `.env`。不要把密钥写进任务、模型目录或版本库。若密钥曾被提交，Git 忽略不会删除历史内容，需在供应商侧撤销旧密钥。
+
+填写后可检查状态，不发送 API 请求，也不显示密钥：
+
+```powershell
+.\run-lab.cmd check-settings
+```
+
+它只验证配置存在且格式正确，密钥有效性、余额和模型权限需在线试跑确认。OpenAI API 账户／密钥与 ChatGPT 网页订阅的使用方式不同；此框架使用 OpenAI API 密钥。Claude 使用 Claude Console 的 API 密钥。
+
+配置好相应密钥后，可先只运行两个廉价候选：
 
 ```powershell
 .\run-lab.cmd batch --models deepseek-flash,gpt-6-luna --output artifacts/screening-01
@@ -45,7 +57,16 @@ API 密钥只通过当前终端的环境变量读取：OpenAI 使用 `OPENAI_API
 .\run-lab.cmd run --task tickets/clamp-boundaries/task.json --model gpt-6-luna
 ```
 
-密钥缺失时会在发送请求前报错；没有自动重试网络请求。此版本的真实适配器已用协议样本测试，尚未完成供应商在线连通性试跑。
+密钥缺失时会在发送请求前报错；没有自动重试网络请求。2026-10-12 已用真实 API 验证 `deepseek-flash` 和 `gpt-6-luna`：两者均完成 clamp-boundaries 的工具循环、公共检查和独立最终验收，保存了供应商用量。其他候选模型及 Anthropic 的在线接入仍待验证。此次单任务试跑不构成能力排名。
+
+首次接入可使用 `configs/connectivity.json`：一个固定任务、两个候选、最多 8 次调用、单次估算费用准入预算 0.25 美元、批次预算 0.50 美元。也可以只选一家的模型；请使用新的输出目录：
+
+```powershell
+.\run-lab.cmd batch --experiment configs/connectivity.json --models deepseek-flash --output artifacts/connectivity-deepseek-02
+.\run-lab.cmd batch --experiment configs/connectivity.json --models gpt-6-luna --output artifacts/connectivity-openai-02
+```
+
+两家分别运行时，各自使用独立批次账本；各一次运行的准入预算合计 0.50 美元，仍不等同于供应商账单硬上限。2026-10-12 的原始记录位于 `artifacts/connectivity-20261012-01/`。
 
 ## 停止与续跑
 
