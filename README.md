@@ -4,7 +4,7 @@
 
 已实现：独立任务副本、单 Agent 工具循环、公共验证与独立最终验收、简单督察、停止条件、Token 与费用估算、批次汇总及批次续跑。
 
-规划者＋执行者、动态升级和模型审查属于后续策略。当前只接受 `single_agent` 配置，不会偷偷调用第二个模型。
+原生实验批次当前只接受 `single_agent` 配置。另有 OpenCode 2.0.32 的交互原型配置：协调者＋执行者、单 Agent 对照角色和本地密钥启动桥接；它尚未接入批次验收与费用账本。
 
 ## 在这台 Windows 电脑上开始
 
@@ -20,6 +20,19 @@
 `validate` 只检查配置。`demo` 使用固定回放，完成三个小任务，并演示三个无进展任务被停止；没有 API 调用，没有真实 API 费用。报告中的模拟 Token 和费用仅用于验证统计流程，不能用于模型能力排名。
 
 每个批次保存 `report.md` 和可分析的 `report.json`。本次首次试跑报告位于 `artifacts/first-demo/report.md`；后续 `demo` 默认创建新目录。
+
+## 使用 OpenCode 交互原型
+
+已安装 OpenCode **2.0.32** 时，在 Windows PowerShell 的项目目录运行：
+
+```powershell
+.\run-lab.cmd opencode-doctor
+.\run-opencode.cmd
+```
+
+第一条核对版本、模型目录和三个项目角色，不提交模型任务。第二条打开交互终端，默认由 Sol 协调，再把一个明确的实现任务交给 DeepSeek。它读取现有 `settings.local.json`，只向子进程注入 OpenAI 和 DeepSeek 密钥，不需要重复填写或保存到 OpenCode 公共配置；发出聊天任务后会产生 API 费用。
+
+目前只验证了配置与角色加载，尚未验证 OpenCode 的真实委派、代码修改、独立验收与完整费用归集。原生 runner 的预算和报告不会自动覆盖这个交互终端。下一步应在独立任务副本中做小规模接入试验，记录主会话、子会话及辅助模型费用，再接入批次比较。详见 [OpenCode 接入说明](docs/opencode.md)。
 
 ## 第一轮真实模型初筛
 
@@ -57,7 +70,7 @@ API 密钥支持项目根目录的 `settings.local.json`。这台电脑已创建
 .\run-lab.cmd run --task tickets/clamp-boundaries/task.json --model gpt-6-luna
 ```
 
-密钥缺失时会在发送请求前报错；没有自动重试网络请求。2026-10-12 已用真实 API 验证 `deepseek-flash` 和 `gpt-6-luna`：两者均完成 clamp-boundaries 的工具循环、公共检查和独立最终验收，保存了供应商用量。其他候选模型及 Anthropic 的在线接入仍待验证。此次单任务试跑不构成能力排名。
+密钥缺失时会在发送请求前报错；没有自动重试网络请求。2026-10-12 已用真实 API 验证 `deepseek-flash` 和 `gpt-6-luna`，2026-10-13 单独验证了 `claude-haiku-5-5`：三者均完成 clamp-boundaries 的工具循环、公共检查和独立最终验收，保存了供应商用量。其他候选模型仍待在线验证。单任务试跑不构成能力排名。
 
 首次接入可使用 `configs/connectivity.json`：一个固定任务、两个候选、最多 8 次调用、单次估算费用准入预算 0.25 美元、批次预算 0.50 美元。也可以只选一家的模型；请使用新的输出目录：
 
@@ -67,6 +80,25 @@ API 密钥支持项目根目录的 `settings.local.json`。这台电脑已创建
 ```
 
 两家分别运行时，各自使用独立批次账本；各一次运行的准入预算合计 0.50 美元，仍不等同于供应商账单硬上限。2026-10-12 的原始记录位于 `artifacts/connectivity-20261012-01/`。
+
+Claude 可单独使用 `configs/claude-connectivity.json`：Haiku 5.5、同一个固定任务、一次运行、整批估算费用准入预算 0.05 美元。2026-10-13 的报告位于 `artifacts/connectivity-claude-20261013-01/report.md`。
+
+```powershell
+.\run-lab.cmd batch --experiment configs/claude-connectivity.json --output artifacts/connectivity-claude-02
+```
+
+## 同模型同任务的费用浮动
+
+`configs/cost-variance.json` 固定一个任务，DeepSeek Flash 与 OpenAI Luna 各重复 5 次；总计 10 次运行。每次重置源码与对话，保持供应商默认缓存行为，运行顺序随机打乱。单次估算费用准入预算 0.05 美元、整批 0.50 美元；其他停止条件沿用连通性试跑。
+
+```powershell
+.\run-lab.cmd batch --experiment configs/cost-variance.json --output artifacts/cost-variance-01
+.\run-lab.cmd variance-report --input artifacts/cost-variance-01
+```
+
+第一条会调用真实 API，第二条只分析保存的数据。`variance.md` 与 `variance.json` 按任务和模型分别报告最低、中位、最高费用、相对中位数范围、样本变异系数、调用数、Token、缓存比例和逐次数据。失败尝试保留；费用未知时不计算该组费用波动。
+
+报告还按同次真实用量，将所有输入按未缓存价格重算一个反事实参考，以帮助分辨执行量和缓存计价差异。这个数值不是供应商账单，也没有额外发送 API 请求。缓存可能跨运行复用，重复运行不保证统计独立；5 次样本只描述本次范围，不用于估计稳定的 P90/P95 或整体模型能力。
 
 ## 停止与续跑
 

@@ -9,6 +9,7 @@ from .experiments import load_experiment, run_batch
 from .reporting import write_report
 from .runner import run_task
 from .settings import KEY_NAMES, resolve_credential
+from .variability import write_variance_report
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +26,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="AI 架构实验平台：任务、单 Agent、验收、用量与成本")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("check-settings", help="检查密钥配置状态，不显示密钥、不调用 API")
+    commands.add_parser("opencode-doctor", help="检查 OpenCode 版本、候选模型和项目角色，不运行任务")
+    commands.add_parser("opencode-chat", help="启动 OpenCode 交互终端，向子进程注入现有本地密钥")
     demo = commands.add_parser("demo", help="离线模拟试跑三个任务，不调用 API")
     demo.add_argument("--output", type=Path)
     batch = commands.add_parser("batch", help="运行或继续实验批次")
@@ -41,6 +44,8 @@ def main(argv=None):
     run.add_argument("--output", type=Path)
     report = commands.add_parser("report", help="重新汇总已保存记录")
     report.add_argument("--input", type=Path, required=True)
+    variance = commands.add_parser("variance-report", help="分析同模型同任务的费用浮动，不调用 API")
+    variance.add_argument("--input", type=Path, required=True)
     validate = commands.add_parser("validate", help="检查实验配置，不调用模型")
     validate.add_argument("--experiment", type=Path, default=ROOT / "configs" / "screening.json")
     validate.add_argument("--catalog", type=Path, default=ROOT / "configs" / "models.json")
@@ -50,7 +55,13 @@ def main(argv=None):
     task_list.add_argument("--json", action="store_true", help="输出可供其他程序读取的 JSON 数组")
     args = parser.parse_args(argv)
     try:
-        if args.command == "check-settings":
+        if args.command == "opencode-chat":
+            from .opencode_bridge import launch
+            return launch()
+        elif args.command == "opencode-doctor":
+            from .opencode_bridge import doctor
+            doctor()
+        elif args.command == "check-settings":
             labels = {"environment": "环境变量", "local_file": "本地文件", "missing": "未配置"}
             for name in KEY_NAMES:
                 key, source = resolve_credential(name)
@@ -79,6 +90,9 @@ def main(argv=None):
                 raise ValueError("Report directory does not exist")
             write_report(args.input.resolve())
             print(args.input.resolve() / "report.md")
+        elif args.command == "variance-report":
+            write_variance_report(args.input.resolve())
+            print(args.input.resolve() / "variance.md")
         elif args.command == "validate":
             tasks, models, limits, repeats, seed, budget = load_experiment(args.experiment, load_models(args.catalog))
             print(f"配置通过：{len(tasks)} 个任务，{len(models)} 个模型，{repeats} 次重复；批次预算 ${budget}")

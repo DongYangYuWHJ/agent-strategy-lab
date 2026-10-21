@@ -1,0 +1,76 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openai/gpt-6.1-sol",
+  "default_agent": "lab-coordinator",
+  "snapshots": false,
+  "compaction": { "auto": false },
+  "permissions": [
+    { "action": "*", "resource": "*", "effect": "deny" },
+    { "action": "read", "resource": "*", "effect": "allow" },
+    { "action": "glob", "resource": "*", "effect": "allow" },
+    { "action": "grep", "resource": "*", "effect": "allow" },
+    { "action": "question", "resource": "*", "effect": "allow" },
+    { "action": "external_directory", "resource": "*", "effect": "deny" },
+    { "action": "read", "resource": "**/settings.local.json", "effect": "deny" },
+    { "action": "read", "resource": "settings.local.json", "effect": "deny" },
+    { "action": "read", "resource": "**/.env*", "effect": "deny" },
+    { "action": "read", "resource": ".env*", "effect": "deny" },
+    { "action": "read", "resource": "**/artifacts/**", "effect": "deny" },
+    { "action": "read", "resource": "artifacts/**", "effect": "deny" }
+  ],
+  "agents": {
+    "lab-coordinator": {
+      "description": "Discuss the developer task and delegate one implementation to the bounded worker.",
+      "mode": "primary",
+      "model": "openai/gpt-6.1-sol",
+      "system": "{file:./roles/coordinator.md}",
+      "steps": 6,
+      "permissions": [
+        { "action": "subagent", "resource": "lab-worker", "effect": "allow" }
+      ]
+    },
+    "lab-worker": {
+      "description": "Implement one bounded coding change; return evidence and uncertainty without delegating.",
+      "mode": "subagent",
+      "model": "deepseek/deepseek-flash",
+      "system": "{file:./roles/worker.md}",
+      "steps": 8,
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "allow" },
+        { "action": "edit", "resource": "settings.local.json", "effect": "deny" },
+        { "action": "edit", "resource": "**/settings.local.json", "effect": "deny" },
+        { "action": "edit", "resource": "**/.env*", "effect": "deny" },
+        { "action": "edit", "resource": ".env*", "effect": "deny" },
+        { "action": "edit", "resource": "opencode.json*", "effect": "deny" },
+        { "action": "edit", "resource": ".opencode/**", "effect": "deny" },
+        { "action": "edit", "resource": "roles/**", "effect": "deny" },
+        { "action": "edit", "resource": "tickets/**/public_check.py", "effect": "deny" },
+        { "action": "edit", "resource": "tickets/**/final_check.py", "effect": "deny" }
+      ]
+    },
+    "lab-solo": {
+      "description": "Single-agent coding baseline without delegation.",
+      "mode": "primary",
+      "model": "openai/gpt-6.1-sol",
+      "system": "{file:./roles/solo.md}",
+      "steps": 8,
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "allow" },
+        { "action": "edit", "resource": "settings.local.json", "effect": "deny" },
+        { "action": "edit", "resource": "**/settings.local.json", "effect": "deny" },
+        { "action": "edit", "resource": ".env*", "effect": "deny" },
+        { "action": "edit", "resource": "**/.env*", "effect": "deny" },
+        { "action": "edit", "resource": "opencode.json*", "effect": "deny" },
+        { "action": "edit", "resource": ".opencode/**", "effect": "deny" },
+        { "action": "edit", "resource": "roles/**", "effect": "deny" },
+        { "action": "edit", "resource": "tickets/**/public_check.py", "effect": "deny" },
+        { "action": "edit", "resource": "tickets/**/final_check.py", "effect": "deny" }
+      ]
+    }
+  },
+  "providers": {
+    "openai": { "settings": { "apiKey": "{env:OPENAI_API_KEY}" } },
+    "deepseek": { "settings": { "apiKey": "{env:DEEPSEEK_API_KEY}" } },
+    "anthropic": { "settings": { "apiKey": "{env:ANTHROPIC_API_KEY}" } }
+  }
+}
