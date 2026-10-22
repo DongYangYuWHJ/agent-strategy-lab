@@ -1,0 +1,15 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc387-c",
+  "question_id": "abc387_c",
+  "title": "Snake Numbers",
+  "difficulty": "medium",
+  "platform": "atcoder",
+  "contest_date": "2025-01-04T00:00:00",
+  "manifest": "tasks/lcb-abc387-c/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "fba25bc50ae6238c719bbb7d83fa074bdf13435d89555c8633bc3ca4dfab2426"
+}

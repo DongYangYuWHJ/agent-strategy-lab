@@ -1,0 +1,15 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc388-f",
+  "question_id": "abc388_f",
+  "title": "Dangerous Sugoroku",
+  "difficulty": "hard",
+  "platform": "atcoder",
+  "contest_date": "2025-01-11T00:00:00",
+  "manifest": "tasks/lcb-abc388-f/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "33839c7dbbcccc44eb4207f58fad02fe60d54c224aebd74579a2cf4ad85d51cb"
+}

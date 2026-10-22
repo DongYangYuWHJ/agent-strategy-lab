@@ -1,0 +1,13 @@
+{
+  "question_title": "Happy New Year 2025",
+  "question_content": "You are given two positive integers A and B.\nOutput the square of A + B.\n\nInput\n\nThe input is given from Standard Input in the following format:\nA B\n\nOutput\n\nPrint the answer.\n\nConstraints\n\n\n- 1 \\leq A,B \\leq 2025\n- All input values are integers.\n\nSample Input 1\n\n20 25\n\nSample Output 1\n\n2025\r\n\n(20+25)^2=2025.\n\nSample Input 2\n\n30 25\n\nSample Output 2\n\n3025\n\nSample Input 3\n\n45 11\n\nSample Output 3\n\n3136\n\nSample Input 4\n\n2025 1111\n\nSample Output 4\n\n9834496",
+  "platform": "atcoder",
+  "question_id": "abc387_a",
+  "contest_id": "abc387",
+  "contest_date": "2025-01-04T00:00:00",
+  "starter_code": "",
+  "difficulty": "easy",
+  "public_test_cases": "[{\"input\": \"20 25\", \"output\": \"2025\", \"testtype\": \"stdin\"}, {\"input\": \"30 25\", \"output\": \"3025\", \"testtype\": \"stdin\"}, {\"input\": \"45 11\", \"output\": \"3136\", \"testtype\": \"stdin\"}, {\"input\": \"2025 1111\", \"output\": \"9834496\", \"testtype\": \"stdin\"}]",
+  "private_test_cases": "eJydVktqHFEMzCKb3EL02gT9nvReThJwsosX3kwMbi9MCOQQyR298xWiNglkZBMKzzTD8EDVUqmqun+8/fX47s3T5+ND/bn8tl2fbu727QNtQrJd0Pb1bv9z4J9Ox8F+dbvv9zdXx9Ht/uX6tH2/oH/qlMlapQYLVux1Vz8vNtaBFZuSRiu2ANuWlUEirucAK1WWghghQrba8MLsdYHk6XPyJi+UeR10/LQGwuuMGZyBnXSsc4h0zwC7kKgZOoCmuIMakNoDn5dHBiiBoGzTTwcb96jltbkV1Z6MNUgs293nNM0JO+fYXzOd8ExFqX9h+wXgMH3ChdAMgApnkDfnqqO2L3EUedbID3jwGYsiZru9RV0gQsgg87b+pfUFqcusEXJ28sJQ6yd5E48uQfcWgys4V0u/NVcaiqFG1tq3Cj+wgeqAZLJ2+bPxRNUrcx4Uro4ROmAHZGVPjx44fIO8MTgENW+lVt+fLVR9f5O7GUjClsMm0pr9ld49aGu1+BPDctLqs0uOEWh46su5hQefFXtNNs6ocw/en73r1FMbbl84SrijM1ipOxRdnmUhvFa4x4tPc95/s+Pzz/e/AWfw1rQ=",
+  "metadata": "{}"
+}

@@ -28,6 +28,10 @@ def main(argv=None):
     commands.add_parser("check-settings", help="检查密钥配置状态，不显示密钥、不调用 API")
     commands.add_parser("opencode-doctor", help="检查 OpenCode 版本、候选模型和项目角色，不运行任务")
     commands.add_parser("opencode-chat", help="启动 OpenCode 交互终端，向子进程注入现有本地密钥")
+    lcb = commands.add_parser("import-livecodebench", help="获取固定版本的六道分级任务，不运行模型")
+    lcb.add_argument("--output", type=Path)
+    lcb_audit = commands.add_parser("audit-livecodebench", help="离线检查六道题的正负样本验收，不运行模型")
+    lcb_audit.add_argument("--output", type=Path)
     demo = commands.add_parser("demo", help="离线模拟试跑三个任务，不调用 API")
     demo.add_argument("--output", type=Path)
     batch = commands.add_parser("batch", help="运行或继续实验批次")
@@ -55,7 +59,17 @@ def main(argv=None):
     task_list.add_argument("--json", action="store_true", help="输出可供其他程序读取的 JSON 数组")
     args = parser.parse_args(argv)
     try:
-        if args.command == "opencode-chat":
+        if args.command == "audit-livecodebench":
+            from .livecodebench import audit_subset
+            output = args.output or new_output("lcb-audit")
+            passed = audit_subset(output)
+            print(f"离线验收检查记录：{output.resolve() / 'audit.json'}")
+            return 0 if passed else 1
+        elif args.command == "import-livecodebench":
+            from .livecodebench import import_subset
+            manifest = import_subset(args.output)
+            print(f"已导入 {len(manifest['tasks'])} 道 LiveCodeBench 任务，未调用模型。")
+        elif args.command == "opencode-chat":
             from .opencode_bridge import launch
             return launch()
         elif args.command == "opencode-doctor":

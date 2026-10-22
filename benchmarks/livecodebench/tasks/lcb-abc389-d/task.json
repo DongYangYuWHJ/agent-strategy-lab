@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "lcb-abc389-d",
+  "description": "LiveCodeBench / medium / Squares in Circle\n\nOn the two-dimensional coordinate plane, there is an infinite tiling of 1 \\times 1 squares.\nConsider drawing a circle of radius R centered at the center of one of these squares. How many of these squares are completely contained inside the circle?\nMore precisely, find the number of integer pairs (i,j) such that all four points (i+0.5,j+0.5), (i+0.5,j-0.5), (i-0.5,j+0.5), and (i-0.5,j-0.5) are at a distance of at most R from the origin.\n\nInput\n\nThe input is given from Standard Input in the following format:\nR\n\nOutput\n\nPrint the answer.\n\nConstraints\n\n\n- 1 \\leq R \\leq 10^{6}\n- All input values are integers.\n\nSample Input 1\n\n2\n\nSample Output 1\n\n5\r\n\nThere are a total of five squares completely contained in the circle: the square whose center matches the circle’s center, plus the four squares adjacent to it.\n\nSample Input 2\n\n4\n\nSample Output 2\n\n37\n\nSample Input 3\n\n26\n\nSample Output 3\n\n2025\n\nImplement solution.py as a Python standard-input/output program. Use the standard library only. Each test starts a fresh process. Do not read test files or modify the evaluator.",
+  "acceptance": [
+    "Match the specified input/output behavior for all public and held-out cases.",
+    "Read stdin and write stdout; no external dependencies or files are required."
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "solution.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

@@ -36,6 +36,8 @@
 
 ## 第一轮真实模型初筛
 
+已加入一个独立的 [LiveCodeBench 单 Agent 任务集](docs/livecodebench.md)：easy、medium、hard 各两道，保留 19 个公开用例和 240 个隐藏用例。配置为 `configs/livecodebench-single.json`，不改变下面原有三道演示任务的默认清单。可以先用 `validate`、`list-tasks` 与 `audit-livecodebench` 离线检查；本次没有运行这批任务的付费模型实验。
+
 `configs/models.json` 保存七个候选模型及价格来源；`configs/screening.json` 自动扫描 `tickets/*/task.json`（目前三个任务）、一次重复、固定随机运行顺序，批次预算为 5 美元、单次预算为 1 美元。这是流程试跑配置，不足以证明能力排名。价格资料记录于 2026-10-10，执行前应重新核对。
 
 API 密钥支持项目根目录的 `settings.local.json`。这台电脑已创建空文件；新克隆的项目先复制 `settings.example.json` 为 `settings.local.json`，再填写对应的 `api_key`：`openai` 是 OpenAI API，`deepseek` 是 DeepSeek，`anthropic` 是 Claude API。同一供应商的多个模型共用密钥；未使用的供应商留空。
@@ -161,7 +163,9 @@ replay.json          仅离线模拟需要的固定动作
 
 每次批次把发现的任务路径、任务指纹与运行清单保存到 `batch.json`。新增、删除或修改任务后，应启动新批次；续跑会拒绝改变原来的样本集。
 
-检查程序是操作者提供的独立 Python 文件，从 `LAB_WORKSPACE` 读取本次代码副本。退出码 0 表示通过，1 表示任务失败，2 表示检查环境错误。检查文件必须位于 `source/` 外面。
+检查程序是操作者提供的独立 Python 文件，从 `LAB_WORKSPACE` 定位本次代码副本。检查通过要求退出码 0、与本次调用绑定的正常完成记录、以及可信评分程序对实际结果的核验；只有退出码或“成功”输出不会被当作通过。退出码 1 表示任务失败，2 表示检查环境错误；提前退出但没有完成记录会被拒绝。检查文件必须位于 `source/` 外面。
+
+现有函数任务使用 `check_client.load_submission` 在另一个进程中调用被测代码；标准输入输出任务由可信 host 比较子进程的实际输出。自定义检查应沿用这种分离方式，避免把被测代码直接导入评分进程。运行辅助代码随每次检查复制并验证摘要。
 
 执行者可以读任务源码、修改明确列出的文件，不能通过文件工具读取或修改验收程序。最终验收结果不会回灌模型进行重试；公开检查允许有限修复。每次验收前后检查不可编辑文件及验收脚本的完整性。
 

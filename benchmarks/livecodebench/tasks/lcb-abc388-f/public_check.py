@@ -1,0 +1,7 @@
+from check_client import check_stdio_cases
+import os
+from pathlib import Path
+import json
+
+cases = json.loads('[{"input": "24 2 3 5\\n7 8\\n17 20", "output": "Yes", "testtype": "stdin"}, {"input": "30 1 5 8\\n4 24", "output": "No", "testtype": "stdin"}, {"input": "100 4 10 11\\n16 18\\n39 42\\n50 55\\n93 99", "output": "Yes", "testtype": "stdin"}]')
+check_stdio_cases(Path(os.environ['LAB_WORKSPACE']) / 'solution.py', cases)

@@ -1,0 +1,15 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc389-d",
+  "question_id": "abc389_d",
+  "title": "Squares in Circle",
+  "difficulty": "medium",
+  "platform": "atcoder",
+  "contest_date": "2025-01-18T00:00:00",
+  "manifest": "tasks/lcb-abc389-d/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "932bfd9ee897ded50297906ec115eadf235652d1f2ea04219a354181681f6090"
+}
