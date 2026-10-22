@@ -16,6 +16,7 @@
 共保留 51 个公开用例、720 个隐藏用例，不删减原测试。官方 difficulty 不变；manifest 另有操作者标注的 topic，用于描述网格、栈、事件查询、树形动态规划、位置优化、图搜索和最短路径等类型，不是额外的官方难度等级。保留集的输入输出接线和验收校准不涉及模型；不要用其模型成绩反复调参。
 
 - `configs/livecodebench-development.json`：已有六题＋新增六道调参题，共 12 题，各难度四题；只包含 DeepSeek 和 Luna，可用 `--models` 单选。
+- `configs/livecodebench-additional-models.json`：同样的 12 题，候选为 Sol、Claude Sonnet、Claude Haiku，每模型每题一次；尚未启动此批线上实验。
 - `configs/livecodebench-holdout.json`：六道保留题，各难度两题，与调参配置完全不重叠。
 - `benchmarks/livecodebench-v2/manifest.json`：逐题来源、原难度、split、topic、用例数及原始记录摘要。
 - `benchmarks/livecodebench-v2/exclusions.json`：已发现的不合格候选题与剔除原因。
@@ -45,7 +46,7 @@
 
 | 参数 | 修改位置 | 含义 |
 |---|---|---|
-| `max_output_tokens` | `configs/models.json` 中各模型条目 | 单次模型请求的最大输出；目前 DeepSeek、Luna 都是 16384，其他候选暂保留原设置。推理也可能消耗这部分额度 |
+| `max_output_tokens` | `configs/models.json` 中各模型条目 | 单次模型请求的最大输出；目前 DeepSeek、Luna、Sol、Sonnet、Haiku 都是 16384，Astra、Fable 暂保留原设置。推理也可能消耗这部分额度 |
 | `reasoning_effort` | 同上 | 模型推理档位；跨供应商不保证同名档位等价 |
 | `limits.max_total_tokens` | 所运行的实验 JSON | 一道任务所有请求的输入＋输出累计上限，目前 100000 |
 | `limits.max_request_bytes` | 同上 | 单次请求 JSON 的 UTF-8 传输字节上限，目前 1048576（1 MiB），也是程序允许的最大值；不是模型的 Token 上下文窗口 |
@@ -61,6 +62,24 @@ Luna 上轮约 37 KB 的后续请求是被旧版 32000 字节保护拦下的。�
 传输包过大停止为 `request_size_limit`；估计输入超过 64000 停止为 `input_estimate_limit`；整题累计 Token、预算、时间、调用次数等继续分别限制。每次准备请求的传输字节与输入估计都会写入事件记录，即使随后在发送前被拦截。提高输出上限可能使下一轮的代码、工具调用或续接内容变大，因此两个限制有间接关联，没有固定换算比例。
 
 更改模型目录会影响之后引用它的所有原生实验。调整任务或参数后使用新的输出目录，旧批次的 `--resume` 会核对并拒绝配置变化。先用 `validate --experiment ...` 检查配置；它不会调用模型。
+
+## 新增候选模型批次
+
+新增配置沿用 DeepSeek／Luna 的调参任务、输出额度 16384、单次请求等待 300 秒、整题 900 秒及累计 100000 Token。三个新候选的推理档位均设为 medium；Luna 也是 medium，DeepSeek 仍保留 low，各供应商档位含义不同。Sol、Sonnet、Haiku 已有原生接口适配；Haiku 曾通过单个小任务的联网检查，不代表已完成本任务集评估，Sol／Sonnet 的本账户调用权限仍待线上确认。
+
+该批单题金额准入预算为 **1 美元**，整批为 **5 美元**；原 DeepSeek／Luna 调参批仍保留单题 0.20、整批 1 美元。提高金额预算是为了容纳较贵模型的最大输出预留，不是预期花费，也不是供应商账单硬上限。两批金额限制不同，分析时应单独标出，不能称为相同美元预算比较。仍可能遇到累计 Token 等其他门槛，按实际停止原因记录，不自动调参重跑。
+
+```powershell
+.\run-lab.cmd validate --experiment configs/livecodebench-additional-models.json
+```
+
+下面是后续可手动启动的付费实验命令，目前没有执行。省略 `--models` 会运行三个新候选共 36 项；如只想测一个，追加 `--models gpt-6.1-sol`、`--models claude-sonnet-5-5` 或 `--models claude-haiku-5-5`。
+
+```powershell
+.\run-lab.cmd batch --experiment configs/livecodebench-additional-models.json --output artifacts/lcb-additional-16k-300s-01
+```
+
+型号、输出额度支持与价格核对：[Sol 官方模型说明](https://developers.openai.com/api/docs/models/gpt-6.1-sol)、[Sonnet 官方模型说明](https://platform.claude.com/docs/en/models/sonnet-5-5/overview)、[Haiku 官方模型说明](https://platform.claude.com/docs/en/models/haiku-5-5/overview)、[Claude 官方价格](https://platform.claude.com/docs/en/about-claude/pricing)。本次仅准备配置并检查加载，没有使用保留评估集或生成新模型成绩。
 
 ## 数据与接口
 
