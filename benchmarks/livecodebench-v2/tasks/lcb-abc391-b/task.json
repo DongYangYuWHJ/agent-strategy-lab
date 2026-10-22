@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "lcb-abc391-b",
+  "description": "LiveCodeBench / easy / Seek Grid\n\nYou are given an N \\times N grid S and an M \\times M grid T. The cell at the i-th row from the top and the j-th column from the left is denoted by (i,j).\nThe colors of the cells in S and T are represented by N^2 characters S_{i,j} (1\\leq i,j\\leq N) and M^2 characters T_{i,j} (1\\leq i,j\\leq M), respectively. In grid S, cell (i,j) is white if S_{i,j} is ., and black if S_{i,j} is #. The same applies for grid T.\nFind T within S. More precisely, output integers a and b (1 \\leq a,b \\leq N-M+1) that satisfy the following condition:\n\n- S_{a+i-1,b+j-1} = T_{i,j} for every i,j (1\\leq i,j \\leq M).\n\nInput\n\nThe input is given from Standard Input in the following format:\nN M\r\nS_{1,1}S_{1,2}\\dots S_{1,N}\r\nS_{2,1}S_{2,2}\\dots S_{2,N}\r\n\\vdots\r\nS_{N,1}S_{N,2}\\dots S_{N,N}\r\nT_{1,1}T_{1,2}\\dots T_{1,M}\r\nT_{2,1}T_{2,2}\\dots T_{2,M}\r\n\\vdots\r\nT_{M,1}T_{M,2}\\dots T_{M,M}\n\nOutput\n\nPrint a and b in this order, separated by a space on one line.\n\nConstraints\n\n\n- 1 \\leq M \\leq N \\leq 50\n- N and M are integers.\n- Each of S_{i,j} and T_{i,j} is . or #.\n- There is exactly one pair (a,b) satisfying the condition.\n\nSample Input 1\n\n3 2\r\n#.#\r\n..#\r\n##.\r\n.#\r\n#.\n\nSample Output 1\n\n2 2\r\n\nThe 2 \\times 2 subgrid of S from the 2nd to the 3rd row and from the 2nd to the 3rd column matches T.\n\nSample Input 2\n\n2 1\r\n#.\r\n##\r\n.\n\nSample Output 2\n\n1 2\n\nImplement solution.py as a Python standard-input/output program. Use the standard library only. Each test starts a fresh process. Do not read test files or modify the evaluator.",
+  "acceptance": [
+    "Match the specified input/output behavior for all public and held-out cases.",
+    "Read stdin and write stdout; no external dependencies or files are required."
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "solution.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

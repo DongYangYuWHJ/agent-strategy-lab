@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc390-c",
+  "question_id": "abc390_c",
+  "title": "Paint to make a rectangle",
+  "difficulty": "medium",
+  "platform": "atcoder",
+  "contest_date": "2025-01-25T00:00:00",
+  "manifest": "tasks/lcb-abc390-c/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "a405d084213feac8c5454f8296394765ac1f8855c7c41ec2018d3ed170a4ceef",
+  "split": "development",
+  "topic": "grid_constraints"
+}

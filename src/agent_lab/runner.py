@@ -108,16 +108,19 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
             state("executing")
             payload = provider.prepare()
             encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-            reservation = ledger.reserve(model, len(encoded))
+            estimated_input_tokens = provider.estimate_input_tokens(payload)
+            recorder.event("request_prepared", request_bytes=len(encoded), estimated_input_tokens=estimated_input_tokens)
+            reservation = ledger.reserve(model, len(encoded), estimated_input_tokens)
             index = ledger.calls
             call_dir = directory / "calls"
             save_json(call_dir / f"{index:03d}-request.json", payload)
             recorder.event("request_started", call=index, request_bytes=len(encoded),
+                           estimated_input_tokens=estimated_input_tokens,
                            estimated_reserve_usd=str(reservation), model_id=model.id)
             # Persist before network activity so an interrupted request is visible.
             state("waiting_for_model")
             try:
-                raw = provider.send(payload, min(60, remaining()))
+                raw = provider.send(payload, min(limits.request_timeout_seconds, remaining()))
             except ProviderError:
                 ledger.mark_unknown(reservation)
                 unknown_usage = True
@@ -140,6 +143,16 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
                 reply = provider.accept(raw)
             except (KeyError, TypeError, ValueError, IndexError):
                 raise StopRun("malformed_model_response") from None
+            if reply.incomplete_reason:
+                recorder.event("response_incomplete", call=index, reason=reply.incomplete_reason)
+                # No partial tool calls, verification, repairs or automatic paid
+                # retries. Usage was recorded above even when output is empty.
+                if reply.incomplete_reason == "max_output_tokens":
+                    raise StopRun("output_token_limit")
+                if reply.incomplete_reason == "length":
+                    raise StopRun("output_token_limit" if usage.output_tokens >= model.max_output_tokens
+                                  else "generation_length_limit")
+                raise StopRun("incomplete_model_response")
             if not reply.calls:
                 # The agent's completion claim is independently verified.
                 ledger.tool_step()

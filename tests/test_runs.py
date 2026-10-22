@@ -12,7 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from agent_lab.domain import Limits, Model, Pricing, Task, load_models, read_json, save_json
 from agent_lab.experiments import run_batch
-from agent_lab.providers import MockProvider, ProviderError
+from agent_lab.providers import AnthropicProvider, DeepSeekProvider, OpenAIProvider, MockProvider, ProviderError
+from agent_lab.runner import SYSTEM
+from agent_lab.tools import TOOLS
 from agent_lab.reporting import collect_results, write_report
 from agent_lab.runner import run_task
 from agent_lab.workspace import Workspace, file_hash
@@ -71,10 +73,73 @@ class RunTests(unittest.TestCase):
         self.assertEqual(result["stop_reason"], "budget_limit")
         self.assertEqual(result["accounting"]["calls"], 0)
 
-    def test_context_limit_sends_no_request(self):
+    def test_request_size_limit_sends_no_request(self):
         result = self.run_model(max_request_bytes=1)
-        self.assertEqual(result["stop_reason"], "context_limit")
+        self.assertEqual(result["stop_reason"], "request_size_limit")
         self.assertEqual(result["accounting"]["calls"], 0)
+
+    def test_truncated_response_records_usage_without_tools_checks_repairs_or_retry(self):
+        examples = [
+            (OpenAIProvider, "openai", {"status": "incomplete", "incomplete_details": {"reason": "max_output_tokens"},
+                "usage": {"input_tokens": 100, "output_tokens": 2048}, "output": []}),
+            (DeepSeekProvider, "deepseek", {"choices": [{"finish_reason": "length", "message": {"content": ""}}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 2048}}),
+            (AnthropicProvider, "anthropic", {"stop_reason": "max_tokens", "content": [],
+                "usage": {"input_tokens": 100, "output_tokens": 2048}})]
+        for cls, kind, raw in examples:
+            with self.subTest(provider=kind):
+                model = Model("test-" + kind, kind, "test-model", Pricing("1", "2"),
+                              max_output_tokens=16384, reasoning_effort="low")
+                client = cls(model, SYSTEM, "task", TOOLS)
+                with patch("agent_lab.runner.make_provider", return_value=client), \
+                     patch.object(client, "send", return_value=raw) as send, \
+                     patch("agent_lab.runner.Checks.run", side_effect=AssertionError("must not verify")):
+                    result = run_task(self.task, model, Limits(), self.root / "truncation")
+                self.assertEqual(result["stop_reason"], "generation_length_limit" if kind == "deepseek" else "output_token_limit")
+                self.assertEqual(result["repairs"], 0)
+                self.assertEqual(result["accounting"]["tool_steps"], 0)
+                self.assertEqual(result["accounting"]["total_tokens"], 2148)
+                self.assertTrue(result["accounting"]["usage_complete"])
+                self.assertGreater(float(result["accounting"]["estimated_cost_usd"]), 0)
+                self.assertEqual(send.call_count, 1)
+                self.assertIsNone(result["final_evidence"])
+
+    def test_deepseek_length_at_configured_output_cap_is_output_token_limit(self):
+        model = Model("test-deepseek", "deepseek", "test-model", Pricing("1", "2"),
+                      max_output_tokens=16384, reasoning_effort="low")
+        client = DeepSeekProvider(model, SYSTEM, "task", TOOLS)
+        raw = {"choices": [{"finish_reason": "length", "message": {"content": ""}}],
+               "usage": {"prompt_tokens": 100, "completion_tokens": 16384}}
+        with patch("agent_lab.runner.make_provider", return_value=client), patch.object(client, "send", return_value=raw):
+            result = run_task(self.task, model, Limits(), self.root / "deepseek-output-cap")
+        self.assertEqual(result["stop_reason"], "output_token_limit")
+        self.assertEqual(result["accounting"]["calls"], 1)
+        self.assertEqual(result["repairs"], 0)
+
+    def test_openai_large_encrypted_continuation_reaches_verified_delivery_offline(self):
+        model = Model("test-openai", "openai", "test-model", Pricing("0.1", "0.5"), max_output_tokens=16384)
+        client = OpenAIProvider(model, SYSTEM, "task", TOOLS)
+        replay = read_json(self.task.manifest_path.parent / "replay.json")
+        requests = []
+
+        def fake_send(payload, timeout):
+            import copy
+            requests.append(copy.deepcopy(payload))
+            index = len(requests) - 1
+            output = [{"type": "function_call", "call_id": f"c-{index}-{i}",
+                       "name": action["name"], "arguments": action["arguments"]}
+                      for i, action in enumerate(replay[index])]
+            if index == 0:
+                output.insert(0, {"type": "reasoning", "encrypted_content": "x" * 200000, "summary": []})
+            return {"status": "completed", "usage": {"input_tokens": 1000, "output_tokens": 1000}, "output": output}
+
+        with patch("agent_lab.runner.make_provider", return_value=client), patch.object(client, "send", fake_send):
+            result = run_task(self.task, model, Limits(), self.root / "continuation")
+        self.assertTrue(result["accepted"], result["stop_reason"])
+        self.assertEqual(len(requests), 3)
+        self.assertEqual(requests[1]["input"][1]["encrypted_content"], "x" * 200000)
+        self.assertTrue(result["final_evidence"]["passed"])
+        self.assertTrue(result["accounting"]["usage_complete"])
 
     def test_missing_usage_stops_without_executing_response_tools(self):
         result = self.run_model("missing_usage")
@@ -83,11 +148,21 @@ class RunTests(unittest.TestCase):
         self.assertEqual(result["accounting"]["tool_steps"], 0)
 
     def test_transport_failure_preserves_unknown_spend(self):
-        with patch.object(MockProvider, "send", side_effect=ProviderError("timeout")):
-            result = self.run_model()
-        self.assertEqual(result["stop_reason"], "provider_error")
-        self.assertFalse(result["accounting"]["usage_complete"])
-        self.assertGreater(float(result["accounting"]["unknown_cost_reserve_usd"]), 0)
+        for request_timeout, task_seconds in [(300, 900), (37, 900), (300, 120)]:
+            with self.subTest(request_timeout=request_timeout, task_seconds=task_seconds):
+                with patch.object(MockProvider, "send", side_effect=ProviderError("timeout")) as send:
+                    result = self.run_model(request_timeout_seconds=request_timeout, max_seconds=task_seconds)
+                timeout = send.call_args.args[1]
+                if request_timeout < task_seconds:
+                    self.assertEqual(timeout, request_timeout)
+                else:
+                    self.assertGreater(timeout, 0)
+                    self.assertLessEqual(timeout, task_seconds)
+                self.assertEqual(result["stop_reason"], "provider_error")
+                self.assertFalse(result["accounting"]["usage_complete"])
+                self.assertGreater(float(result["accounting"]["unknown_cost_reserve_usd"]), 0)
+                saved = read_json(Path(result["artifact_dir"]) / "config.json")
+                self.assertEqual(saved["limits"]["request_timeout_seconds"], request_timeout)
 
     def test_invalid_paths_cannot_read_private_checks_and_tool_cap_stops(self):
         result = self.run_model("invalid", max_tool_steps=2)

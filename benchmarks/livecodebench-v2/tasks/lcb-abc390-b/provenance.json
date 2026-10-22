@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc390-b",
+  "question_id": "abc390_b",
+  "title": "Geometric Sequence",
+  "difficulty": "easy",
+  "platform": "atcoder",
+  "contest_date": "2025-01-25T00:00:00",
+  "manifest": "tasks/lcb-abc390-b/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "71868e56ae3c87b68d3383a64f1b1f4cf229f2e0a2356805edd4f513faf0c413",
+  "split": "development",
+  "topic": "exact_arithmetic_sequence"
+}

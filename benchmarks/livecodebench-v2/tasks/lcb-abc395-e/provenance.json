@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc395-e",
+  "question_id": "abc395_e",
+  "title": "Flip Edge",
+  "difficulty": "hard",
+  "platform": "atcoder",
+  "contest_date": "2025-03-01T00:00:00",
+  "manifest": "tasks/lcb-abc395-e/task.json",
+  "public_cases": 4,
+  "private_cases": 40,
+  "record_sha256": "bb5950d30b6eb1e1b9446f16f1da83f1ca5da5d930d2d579a8df8bf3374514d2",
+  "split": "holdout",
+  "topic": "layered_graph_shortest_paths"
+}

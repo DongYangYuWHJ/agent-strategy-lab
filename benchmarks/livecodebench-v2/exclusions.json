@@ -1,0 +1,8 @@
+[
+  {
+    "dataset_revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+    "question_id": "abc392_f",
+    "reason": "Private case 15 violates the stated constraint 1 <= P_i <= i: N=6 and P_1=3. Entire task excluded; tests were not edited.",
+    "evidence": "artifacts/lcb-v2-audit-20261021-01/audit.json"
+  }
+]

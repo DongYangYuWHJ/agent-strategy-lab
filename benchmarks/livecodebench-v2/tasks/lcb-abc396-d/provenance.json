@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc396-d",
+  "question_id": "abc396_d",
+  "title": "Minimum XOR Path",
+  "difficulty": "medium",
+  "platform": "atcoder",
+  "contest_date": "2025-03-08T00:00:00",
+  "manifest": "tasks/lcb-abc396-d/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "9fa791f2b0ae92fed79711f5977a1e1d649ce8dc7b920e635e72a1cf95531b76",
+  "split": "holdout",
+  "topic": "graph_backtracking"
+}

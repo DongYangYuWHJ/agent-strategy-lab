@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "lcb-abc396-d",
+  "description": "LiveCodeBench / medium / Minimum XOR Path\n\nYou are given a simple connected undirected graph with N vertices numbered 1 through N and M edges numbered 1 through M. Edge i connects vertices u_i and v_i, and has a label w_i.\nAmong all simple paths (paths that do not pass through the same vertex more than once) from vertex 1 to vertex N, find the minimum XOR of the labels of the edges on the path.\n\nNotes on XOR\r\n\r\nFor non-negative integers A and B, their XOR A \\oplus B is defined as follows:\r\n\r\n\n- In the binary representation of A \\oplus B, the digit in the place corresponding to 2^k \\,(k \\ge 0) is 1 if and only if exactly one of the digits in the same place of A and B is 1; otherwise, it is 0.\n\r\n\r\nFor example, 3 \\oplus 5 = 6 (in binary: 011 \\oplus 101 = 110).\r\n\r\nIn general, the XOR of k integers p_1, \\dots, p_k is defined as (\\cdots ((p_1 \\oplus p_2) \\oplus p_3) \\oplus \\cdots \\oplus p_k). It can be proved that it does not depend on the order of p_1, \\dots, p_k.\n\nInput\n\nThe input is given from Standard Input in the following format:\nN M\r\nu_1 v_1 w_1\r\nu_2 v_2 w_2\r\n\\vdots\r\nu_M v_M w_M\n\nOutput\n\nPrint the answer.\n\nConstraints\n\n\n- 2 \\leq N \\leq 10\n- N-1 \\leq M \\leq \\frac{N(N-1)}{2}\n- 1 \\leq u_i < v_i \\leq N\n- 0 \\leq w_i < 2^{60}\n- The given graph is a simple connected undirected graph.\n- All input values are integers.\n\nSample Input 1\n\n4 4\r\n1 2 3\r\n2 4 5\r\n1 3 4\r\n3 4 7\n\nSample Output 1\n\n3\r\n\nThere are two simple paths from vertex 1 to vertex 4:\n\n- 1 \\to 2 \\to 4\n- 1 \\to 3 \\to 4\n\nThe XOR of the labels on the edges of the first path is 6, and that of the second path is 3. Therefore, the answer is 3.\n\nSample Input 2\n\n4 3\r\n1 2 1\r\n2 3 2\r\n3 4 4\n\nSample Output 2\n\n7\n\nSample Input 3\n\n7 10\r\n1 2 726259430069220777\r\n1 4 988687862609183408\r\n1 5 298079271598409137\r\n1 6 920499328385871537\r\n1 7 763940148194103497\r\n2 4 382710956291350101\r\n3 4 770341659133285654\r\n3 5 422036395078103425\r\n3 6 472678770470637382\r\n5 7 938201660808593198\n\nSample Output 3\n\n186751192333709144\n\nImplement solution.py as a Python standard-input/output program. Use the standard library only. Each test starts a fresh process. Do not read test files or modify the evaluator.",
+  "acceptance": [
+    "Match the specified input/output behavior for all public and held-out cases.",
+    "Read stdin and write stdout; no external dependencies or files are required."
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "solution.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

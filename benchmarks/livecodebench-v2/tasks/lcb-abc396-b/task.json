@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "lcb-abc396-b",
+  "description": "LiveCodeBench / easy / Card Pile\n\nThere is a stack of 100 cards, each labeled with the integer 0.\nProcess Q queries. Each query is of one of the following:\n\n- Type 1: Place a card labeled with an integer x on top of the stack.\n- Type 2: Remove the top card of the stack and output the integer written on that removed card. Under the constraints of this problem, the stack always has at least one card.\n\nInput\n\nThe input is given from Standard Input in the following format:\nQ\r\n\\text{query}_1\r\n\\text{query}_2\r\n\\vdots\r\n\\text{query}_Q\r\n\nThe i-th query \\text{query}_i starts with the query type c_i (1 or 2), followed by the integer x if c_i=1.\nThat is, each query is in one of the following two formats:\n1 x\r\n\n2\n\nOutput\n\nLet q be the number of queries with c_i=2. Print q lines.\nThe j-th line (1 \\le j \\le q) should contain the answer to the j-th such query.\n\nConstraints\n\n\n- 1 \\le Q \\le 100\n- 1 \\le x \\le 100\n- There is at least one query of type 2.\n- All input values are integers.\n\nSample Input 1\n\n6\r\n2\r\n1 4\r\n1 3\r\n2\r\n2\r\n2\n\nSample Output 1\n\n0\r\n3\r\n4\r\n0\r\n\nAfter processing each query, the stack is as follows:\n\n- Remove the top card of the stack. The integer on the removed card is 0, so output 0.\n- The stack then has 99 cards labeled with 0.\n\n\n- Add a card labeled 4 on top.\n- The stack then has 1 card labeled 4, and 99 cards labeled 0, from top to bottom.\n\n\n- Add a card labeled 3 on top.\n- The stack then has 1 card labeled 3, 1 card labeled 4, and 99 cards labeled 0, from top to bottom.\n\n\n- Remove the top card. The integer on that card is 3, so output 3.\n- The stack then has 1 card labeled 4, and 99 cards labeled 0, from top to bottom.\n\n\n- Remove the top card. The integer on that card is 4, so output 4.\n- The stack then has 99 cards labeled 0.\n\n\n- Remove the top card. The integer on that card is 0, so output 0.\n- The stack then has 98 cards labeled 0.\n\nSample Input 2\n\n5\r\n2\r\n2\r\n2\r\n2\r\n2\n\nSample Output 2\n\n0\r\n0\r\n0\r\n0\r\n0\n\nImplement solution.py as a Python standard-input/output program. Use the standard library only. Each test starts a fresh process. Do not read test files or modify the evaluator.",
+  "acceptance": [
+    "Match the specified input/output behavior for all public and held-out cases.",
+    "Read stdin and write stdout; no external dependencies or files are required."
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "solution.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

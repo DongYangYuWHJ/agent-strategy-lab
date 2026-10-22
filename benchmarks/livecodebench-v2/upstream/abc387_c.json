@@ -1,0 +1,13 @@
+{
+  "question_title": "Snake Numbers",
+  "question_content": "A positive integer not less than 10 whose top digit (the most significant digit) in decimal representation is strictly larger than every other digit in that number is called a Snake number.\nFor example, 31 and 201 are Snake numbers, but 35 and 202 are not.\nFind how many Snake numbers exist between L and R, inclusive.\n\nInput\n\nThe input is given from Standard Input in the following format:\nL R\n\nOutput\n\nPrint the answer.\n\nConstraints\n\n\n- 10 \\leq L \\leq R \\leq 10^{18}\n- All input values are integers.\n\nSample Input 1\n\n97 210\n\nSample Output 1\n\n6\n\nThe Snake numbers between 97 and 210, inclusive, are 97, 98, 100, 200, 201, and 210: there are six.\n\nSample Input 2\n\n1000 9999\n\nSample Output 2\n\n2025\n\nSample Input 3\n\n252509054433933519 760713016476190692\n\nSample Output 3\n\n221852052834757",
+  "platform": "atcoder",
+  "question_id": "abc387_c",
+  "contest_id": "abc387",
+  "contest_date": "2025-01-04T00:00:00",
+  "starter_code": "",
+  "difficulty": "medium",
+  "public_test_cases": "[{\"input\": \"97 210\", \"output\": \"6\", \"testtype\": \"stdin\"}, {\"input\": \"1000 9999\", \"output\": \"2025\", \"testtype\": \"stdin\"}, {\"input\": \"252509054433933519 760713016476190692\", \"output\": \"221852052834757\", \"testtype\": \"stdin\"}]",
+  "private_test_cases": "eJyNVr2qVGkQ3MBsX+JjYln6/8cnEXSzNTC5KzgGIoKhmYm+r3UuLOxtEXqGgZk5p/t0V1VXf1+e/fj25x+Pr5df8eXVp9vbh3cf7rcX52ZUEtKmzn2Ky9lcmElvz8/t3w/3/25zbS9WotcP15X7m/f3+8d3b65r7+//vH24fX5+/peW6XTPFLtQZRI/6eT+NIF21i5F92Gip9G8CxWSyANIZvzy0U6IPM2d9jS+gfMWu/LmrOQQJQYdxyuveFUtKk2PAU0WiSFK3Wz3kOhkPW0cOep0X9ZpJiwn8dxJVOgyhbJriAdEKO0pUkfFLEKKsg0X8BkyUrJIWdNJUhrNFnREUbEhs/Yg5ypjiRsq0hOuNupismVNhRzIAIoHbCxbfUOhPPS5RbwzwTurjvHsKFliKhZHMibtQqpLhbdVsCkUBEaAKJ16FHoTs3RFZA54lQpKQ/HimI9c4kRZp2O2ar5kqjv4JFkPpsRl6YMwTOoq9oIrqDA600qqmvqjpiV4sISGGUDUVZg+d8IfpDX1CAittHkpjKJIGFfyFHZVLSsDM5LwKjcZgNfS+1nhPhLthumAmXmdMKCtHdc+SFXPoTpWU05KV9LcDjE7+sQ2Y+2TTQFLgE3UWHoCQeJttpSbcVdfSpZft+fSlkFmmaF70Ic13Can1fCjgWpIukgM7VRjFk0T96EpWQ4xdr7KKYTw03SO15IsuGDhzBBTzR663fUwArgpRDqhR8vbKqAWKXTOjAkLUhgL+Mw5DqByWVXhMHTtRu3ZmEUvecQypgOQeXgPZnI7CpDRKcViHxlElxxzGTh2gtcOPW4PUjjGzT2ztE5MVuMUB5cfRJhtHQnHH8tTmJ1RflosqzBslcNBPuSFQd0uO5fLm3GuwsbUx1Nywi4u7whDezCPll9so7AgHI5i6b+X8d/f//oJjWUrtg==",
+  "metadata": "{}"
+}

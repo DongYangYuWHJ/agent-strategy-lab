@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc393-d",
+  "question_id": "abc393_d",
+  "title": "Swap to Gather",
+  "difficulty": "hard",
+  "platform": "atcoder",
+  "contest_date": "2025-02-15T00:00:00",
+  "manifest": "tasks/lcb-abc393-d/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "d53476033be5573aa09c0a5942c3a9f1241d006b3bc7d06120037542b8fad918",
+  "split": "development",
+  "topic": "median_position_optimization"
+}

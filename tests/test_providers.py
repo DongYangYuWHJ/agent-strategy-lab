@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -14,6 +15,43 @@ def provider(cls, kind):
 
 
 class ProviderProtocolTests(unittest.TestCase):
+    def test_large_encrypted_state_uses_reported_output_allowance_not_ciphertext_bytes(self):
+        client = provider(OpenAIProvider, "openai")
+        raw = {"status": "completed", "usage": {"input_tokens": 100, "output_tokens": 2300},
+               "output": [{"type": "reasoning", "encrypted_content": "x" * 200000, "summary": []},
+                          {"type": "function_call", "call_id": "a", "name": "list_files", "arguments": "{}"}]}
+        reply = client.accept(raw)
+        client.add_results([(reply.calls[0], {"ok": True})])
+        request = client.prepare()
+        self.assertGreater(len(json.dumps(request).encode()), 200000)
+        self.assertEqual(request["input"][1]["encrypted_content"], "x" * 200000)
+        estimate = client.estimate_input_tokens(request)
+        self.assertGreater(estimate, 2300 + 2048)
+        self.assertLess(estimate, 12000)
+        # A second response contributes its complete output allowance as well.
+        client.accept({"usage": {"output_tokens": 1500}, "output": [
+            {"type": "reasoning", "encrypted_content": "y" * 100000, "summary": []}]})
+        self.assertGreaterEqual(client.estimate_input_tokens(client.prepare()), estimate + 1500)
+        # Ordinary source/tool text is still counted and bounded.
+        client.add_user("z" * 70000)
+        self.assertGreater(client.estimate_input_tokens(client.prepare()), 70000)
+
+    def test_truncated_tool_calls_are_never_accepted(self):
+        examples = [
+            (OpenAIProvider, "openai", {"status": "incomplete", "incomplete_details": {"reason": "max_output_tokens"},
+             "output": [{"type": "function_call", "call_id": "c", "name": "submit", "arguments": "{partial"}]}),
+            (DeepSeekProvider, "deepseek", {"choices": [{"finish_reason": "length", "message": {
+                "tool_calls": [{"id": "c", "function": {"name": "submit", "arguments": "{partial"}}]}}]}),
+            (AnthropicProvider, "anthropic", {"stop_reason": "max_tokens", "content": [
+                {"type": "tool_use", "id": "c", "name": "submit", "input": {"summary": "partial"}}]})]
+        for cls, kind, raw in examples:
+            with self.subTest(provider=kind):
+                client = provider(cls, kind)
+                reply = client.accept(raw)
+                self.assertEqual(reply.incomplete_reason, "length" if kind == "deepseek" else "max_output_tokens")
+                self.assertEqual(reply.calls, [])
+                self.assertEqual(len(client.messages), 1)
+
     def test_openai_preserves_reasoning_and_tool_call_ids(self):
         client = provider(OpenAIProvider, "openai")
         raw = {"output": [{"type": "reasoning", "id": "rs", "encrypted_content": "encrypted", "summary": []},

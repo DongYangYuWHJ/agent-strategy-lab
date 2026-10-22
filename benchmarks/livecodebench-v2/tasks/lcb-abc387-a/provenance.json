@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc387-a",
+  "question_id": "abc387_a",
+  "title": "Happy New Year 2025",
+  "difficulty": "easy",
+  "platform": "atcoder",
+  "contest_date": "2025-01-04T00:00:00",
+  "manifest": "tasks/lcb-abc387-a/task.json",
+  "public_cases": 4,
+  "private_cases": 40,
+  "record_sha256": "996af1e24e935f5b34448f9ccf90fcd0989c04b945f7ca5f5f57b1b1d01b624e",
+  "split": "calibration",
+  "topic": "legacy_calibration"
+}

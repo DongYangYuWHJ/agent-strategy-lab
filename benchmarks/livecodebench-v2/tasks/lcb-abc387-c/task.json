@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "lcb-abc387-c",
+  "description": "LiveCodeBench / medium / Snake Numbers\n\nA positive integer not less than 10 whose top digit (the most significant digit) in decimal representation is strictly larger than every other digit in that number is called a Snake number.\nFor example, 31 and 201 are Snake numbers, but 35 and 202 are not.\nFind how many Snake numbers exist between L and R, inclusive.\n\nInput\n\nThe input is given from Standard Input in the following format:\nL R\n\nOutput\n\nPrint the answer.\n\nConstraints\n\n\n- 10 \\leq L \\leq R \\leq 10^{18}\n- All input values are integers.\n\nSample Input 1\n\n97 210\n\nSample Output 1\n\n6\n\nThe Snake numbers between 97 and 210, inclusive, are 97, 98, 100, 200, 201, and 210: there are six.\n\nSample Input 2\n\n1000 9999\n\nSample Output 2\n\n2025\n\nSample Input 3\n\n252509054433933519 760713016476190692\n\nSample Output 3\n\n221852052834757\n\nImplement solution.py as a Python standard-input/output program. Use the standard library only. Each test starts a fresh process. Do not read test files or modify the evaluator.",
+  "acceptance": [
+    "Match the specified input/output behavior for all public and held-out cases.",
+    "Read stdin and write stdout; no external dependencies or files are required."
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "solution.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

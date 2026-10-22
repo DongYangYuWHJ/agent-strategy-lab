@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc394-d",
+  "question_id": "abc394_d",
+  "title": "Colorful Bracket Sequence",
+  "difficulty": "medium",
+  "platform": "atcoder",
+  "contest_date": "2025-02-22T00:00:00",
+  "manifest": "tasks/lcb-abc394-d/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "02bdcc266e63d4b95ab9cb12e652616c83b89a53bc9bf9a81adb52cd827f60f2",
+  "split": "holdout",
+  "topic": "stack_parsing"
+}

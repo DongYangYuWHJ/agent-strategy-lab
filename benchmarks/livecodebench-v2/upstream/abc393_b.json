@@ -1,0 +1,13 @@
+{
+  "question_title": "A..B..C",
+  "question_content": "A string S is given.\nFind how many places in S have A, B, and C in this order at even intervals.\nSpecifically, find the number of triples of integers (i,j,k) that satisfy all of the following conditions. Here, |S| denotes the length of S, and S_x denotes the x-th character of S.\n\n- 1 \\leq i < j < k \\leq |S|\n- j - i = k - j\n- S_i = A\n- S_j = B\n- S_k = C\n\nInput\n\nThe input is given from Standard Input in the following format:\nS\n\nOutput\n\nPrint the answer.\n\nConstraints\n\n\n- S is an uppercase English string with length between 3 and 100, inclusive.\n\nSample Input 1\n\nAABCC\n\nSample Output 1\n\n2\r\n\nThere are two triples (i,j,k) = (1,3,5) and (2,3,4) that satisfy the conditions.\n\nSample Input 2\n\nARC\n\nSample Output 2\n\n0\n\nSample Input 3\n\nAABAAABBAEDCCCD\n\nSample Output 3\n\n4",
+  "platform": "atcoder",
+  "question_id": "abc393_b",
+  "contest_id": "abc393",
+  "contest_date": "2025-02-15T00:00:00",
+  "starter_code": "",
+  "difficulty": "easy",
+  "public_test_cases": "[{\"input\": \"AABCC\", \"output\": \"2\", \"testtype\": \"stdin\"}, {\"input\": \"ARC\", \"output\": \"0\", \"testtype\": \"stdin\"}, {\"input\": \"AABAAABBAEDCCCD\", \"output\": \"4\", \"testtype\": \"stdin\"}]",
+  "private_test_cases": "eJydVruKXkcMTpEuL7H8tQlJIE06zV1zv99id3HhZmPw7yKEQB4ieZJ0ebqcNcaErZYRHDiI+SSNRtKnP7/++99vvvok85/r5+ffb+8e33+83356uFHJulMI2gmuC/YhJ6oq6O3Vw+3Xj/fPp757/fikuL/9cL//9v7tk+rD/Zd3j7c/Xj38zxhnPNIMSSi385EFAySS2vQROA4OqjLvwFUWK0PkEJkkLEVTSZ0sKh1VVHKaRPpeFlbHQjAtabqzC3rNmTDd+pypQ0QaisIRjoLZcTdxhGyNNnKEhDgKTyM7KuaZgXz28DtIS4cfTOCZXwBCCKXPvP/4MnRgo6lM9FnVKG4gdOLicKexfxbyRegXeXahF9rsPvLJiLFYOPDtJbOM8YRGca6DtWeRuhl65mdFuZ/kCLmWBmrOGtr0KaRURStVKvGpH5mxTKzcwLOuXW22lXiWPo9nGSiyJ5POoNNvnoOZ7uzqhpvEmZjkDK6E587xDkfoupuk2uXpmVFseJ3k8r5INUvxKFEV2BgT0alEKmRTS9tM7aqYTE3aP2/o71/mVgTjBRBRma3eWKXn1io15lJHtLXKVkilYRSEtEs7q0zdlIWg5tWhwXZHyXC+eyJt9ryIMRRhvuwFw3Rsek+s5uIbcMNCLpi6tmTsi3OSZKv75ibZ0pJsKlc2Fs/CWcfAvsbQ9dF9lDrSkvSMWutbj37plB0Kc2XrjE6U82UhH/KMQoHQs1sIF8GAQZ1FWSqc1f6nkX6ERGyreW/kGZk2qxoAs7uzfjasXY4zQ6z9MhFkos2nwPIgBiSB6AuqbYF3s9L11gzQHyaIPOe3H16YIJYhYL6Wht1a88o04lxgq0wenVVcXjTV6rQZ2rVPJmYLygI01TE8rSWamebZDOcr4Sxs1TBljX7uHfZIpYpSCsNgFSvWyUuHkwqlF4Vrl00uu7xDpR5N00Qxjsmmp60h5tzZUSCZk4j2pdA3f337H1feid4=",
+  "metadata": "{}"
+}

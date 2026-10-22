@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc387-f",
+  "question_id": "abc387_f",
+  "title": "Count Arrays",
+  "difficulty": "hard",
+  "platform": "atcoder",
+  "contest_date": "2025-01-04T00:00:00",
+  "manifest": "tasks/lcb-abc387-f/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "698fe2407d981156be280578ed2c170bbef6dba0a6f31198de9a17d908dd9c44",
+  "split": "calibration",
+  "topic": "legacy_calibration"
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "strategy": "single_agent",
+  "models": [
+    "deepseek-flash",
+    "gpt-6-luna"
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "1.00",
+  "limits": {
+    "max_calls": 12,
+    "max_tool_steps": 30,
+    "max_repairs": 2,
+    "max_no_progress": 2,
+    "max_total_tokens": 100000,
+    "max_request_bytes": 1048576,
+    "max_estimated_input_tokens": 64000,
+    "max_seconds": 900,
+    "request_timeout_seconds": 300,
+    "check_timeout_seconds": 300,
+    "max_cost_usd": "0.20"
+  },
+  "tasks": [
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc393-b/task.json",
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc396-b/task.json",
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc394-d/task.json",
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc396-d/task.json",
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc394-e/task.json",
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc395-e/task.json"
+  ]
+}

@@ -29,14 +29,18 @@ class Ledger:
         self.usage = {k: 0 for k in asdict(Usage(0, 0))}
         self.records = []
 
-    def reserve(self, model: Model, request_bytes: int):
+    def reserve(self, model: Model, request_bytes: int, estimated_input_tokens: int | None = None):
         if self.calls >= self.limits.max_calls:
             raise StopRun("call_limit")
         if request_bytes > self.limits.max_request_bytes:
-            raise StopRun("context_limit")
-        # Serialized UTF-8 bytes + framing margin is a deliberately conservative
-        # estimate, not a provider-certified tokenizer count or billing guarantee.
-        input_reserve = request_bytes + 2048
+            raise StopRun("request_size_limit")
+        # Provider-specific estimate, independent of wire size. The fallback is
+        # deliberately conservative, not a certified tokenizer/billing guarantee.
+        input_reserve = request_bytes + 2048 if estimated_input_tokens is None else estimated_input_tokens
+        if type(input_reserve) is not int or input_reserve < 1:
+            raise ValueError("Invalid estimated input tokens")
+        if input_reserve > self.limits.max_estimated_input_tokens:
+            raise StopRun("input_estimate_limit")
         token_reserve = input_reserve + model.max_output_tokens
         max_input_rate = max(money(model.pricing.input), money(model.pricing.cache_write),
                              money(model.pricing.cached_input))

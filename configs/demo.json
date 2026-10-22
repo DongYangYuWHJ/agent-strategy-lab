@@ -21,6 +21,7 @@
     "max_total_tokens": 100000,
     "max_request_bytes": 32000,
     "max_seconds": 180,
+    "request_timeout_seconds": 300,
     "check_timeout_seconds": 15,
     "max_cost_usd": "1.00"
   }

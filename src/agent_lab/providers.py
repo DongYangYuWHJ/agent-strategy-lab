@@ -54,6 +54,11 @@ class Provider:
     def prepare(self):
         raise NotImplementedError
 
+    def estimate_input_tokens(self, payload):
+        # One token per serialized UTF-8 byte plus protocol margin: conservative
+        # for plain text, but not appropriate for opaque encrypted state.
+        return len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) + 2048
+
     def send(self, payload, timeout):
         raise NotImplementedError
 
@@ -71,6 +76,10 @@ class Provider:
 
 
 class OpenAIProvider(Provider):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._encrypted_output_token_allowance = 0
+
     def preflight(self):
         self._api_key = require_credential("openai")
 
@@ -92,8 +101,31 @@ class OpenAIProvider(Provider):
                      details.get("cached_tokens", 0), details.get("cache_write_tokens", 0),
                      (usage.get("output_tokens_details") or {}).get("reasoning_tokens", 0))
 
+    def estimate_input_tokens(self, payload):
+        # Keep every encrypted block unchanged ON THE WIRE. For admission only,
+        # replace its bytes with the full output-token count of its source
+        # response. Counting all output (not just reasoning) errs on the high
+        # side, and still counts the visible fields below. No decryption occurs.
+        visible_payload = {**payload, "input": [
+            {key: value for key, value in item.items() if key != "encrypted_content"}
+            if item.get("type") == "reasoning" else item for item in payload["input"]]}
+        return super().estimate_input_tokens(visible_payload) + self._encrypted_output_token_allowance
+
     def accept(self, raw):
+        if raw.get("status") == "incomplete":
+            return AgentReply([], incomplete_reason=(raw.get("incomplete_details") or {}).get("reason") or "unknown")
+        if raw.get("status") in {"failed", "cancelled", "queued", "in_progress"}:
+            return AgentReply([], incomplete_reason="response_" + raw["status"])
         items = raw.get("output", [])
+        if any(item.get("status") == "incomplete" for item in items):
+            return AgentReply([], incomplete_reason="incomplete_output_item")
+        if any(item.get("type") == "reasoning" and item.get("encrypted_content") for item in items):
+            # Normal execution validates usage before accepting a response. The
+            # fallback also makes direct protocol/fixture use conservative.
+            output_tokens = (raw.get("usage") or {}).get("output_tokens", self.model.max_output_tokens)
+            if type(output_tokens) is not int or output_tokens < 0:
+                raise ValueError("Invalid encrypted continuation token allowance")
+            self._encrypted_output_token_allowance += output_tokens
         # Retain reasoning and encrypted continuation blocks, not just text.
         self.messages.extend(items)
         calls = [ToolCall(item["call_id"], item["name"], arguments(item["arguments"]))
@@ -130,6 +162,10 @@ class DeepSeekProvider(Provider):
                      (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0))
 
     def accept(self, raw):
+        if raw["choices"][0].get("finish_reason") == "length":
+            # DeepSeek uses length for both output and context length limits.
+            # The runner compares measured output with the configured cap.
+            return AgentReply([], incomplete_reason="length")
         message = raw["choices"][0]["message"]
         # Thinking-mode tool cycles require the original reasoning_content.
         self.messages.append(message)
@@ -169,6 +205,8 @@ class AnthropicProvider(Provider):
                      (usage.get("output_tokens_details") or {}).get("thinking_tokens", 0))
 
     def accept(self, raw):
+        if raw.get("stop_reason") == "max_tokens":
+            return AgentReply([], incomplete_reason="max_output_tokens")
         blocks = raw["content"]
         self.messages.append({"role": "assistant", "content": blocks})
         calls = [ToolCall(item["id"], item["name"], arguments(item["input"]))

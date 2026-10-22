@@ -45,7 +45,7 @@ Usage：输入包含缓存读取和写入；输出包含推理用量。额外字
 
 最终状态：succeeded、failed、stopped、error、cancelled；未保存最终结果的旧目录在报告中显示 interrupted。
 
-停止原因独立记录，包括 accepted、acceptance_failed、repair_limit、no_progress、call_limit、tool_limit、token_limit、context_limit、budget_limit、time_limit、check_timeout、usage_unknown、provider_error、malformed_model_response、environment_error、interrupted。
+停止原因独立记录，包括 accepted、acceptance_failed、repair_limit、no_progress、call_limit、tool_limit、token_limit、output_token_limit、generation_length_limit、request_size_limit、input_estimate_limit、incomplete_model_response、budget_limit、time_limit、check_timeout、usage_unknown、provider_error、malformed_model_response、environment_error、interrupted。旧报告中的 context_limit 是旧版本的本地请求字节拦截，不能解释为供应商上下文窗口耗尽。
 
 批次完成表示实验单元已执行，不表示任务全部成功。任务失败照常计入汇总；用量未知时暂停剩余调用。
 

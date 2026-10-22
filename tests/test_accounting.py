@@ -14,6 +14,33 @@ def model():
 
 
 class AccountingTests(unittest.TestCase):
+    def test_wire_bytes_are_independent_of_input_token_estimate(self):
+        ledger = Ledger(Limits())
+        ledger.reserve(model(), 200000, 5000)
+        self.assertEqual(ledger.calls, 1)
+
+    def test_transport_and_input_estimate_limits_stop_before_sending(self):
+        for wire_bytes, estimate, reason in [(1048577, 5000, "request_size_limit"),
+                                              (200000, 64001, "input_estimate_limit")]:
+            with self.subTest(reason=reason):
+                ledger = Ledger(Limits())
+                with self.assertRaisesRegex(StopRun, reason):
+                    ledger.reserve(model(), wire_bytes, estimate)
+                self.assertEqual(ledger.calls, 0)
+
+    def test_large_wire_request_still_obeys_token_and_money_budgets(self):
+        for limits, reason in [(Limits(max_total_tokens=5500), "token_limit"),
+                                (Limits(max_cost_usd="0.001"), "budget_limit")]:
+            with self.subTest(reason=reason):
+                with self.assertRaisesRegex(StopRun, reason):
+                    Ledger(limits).reserve(model(), 200000, 5000)
+
+    def test_input_and_transport_configuration_bounds_are_separate(self):
+        Limits(max_request_bytes=1048576, max_estimated_input_tokens=64000)
+        for kwargs in ({"max_request_bytes": 1048577}, {"max_estimated_input_tokens": 64001}):
+            with self.assertRaises(ValueError):
+                Limits(**kwargs)
+
     def test_cached_and_reasoning_tokens_not_double_counted(self):
         usage = Usage(1000, 200, 400, 100, 150)
         self.assertEqual(usage.total, 1200)

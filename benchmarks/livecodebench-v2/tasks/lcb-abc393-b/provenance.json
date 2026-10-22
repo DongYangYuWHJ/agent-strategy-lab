@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc393-b",
+  "question_id": "abc393_b",
+  "title": "A..B..C",
+  "difficulty": "easy",
+  "platform": "atcoder",
+  "contest_date": "2025-02-15T00:00:00",
+  "manifest": "tasks/lcb-abc393-b/task.json",
+  "public_cases": 3,
+  "private_cases": 40,
+  "record_sha256": "93eb37b4a93cabc3965f955b4859a7365b6da9575559bdb74335b4ea344c3510",
+  "split": "holdout",
+  "topic": "string_enumeration"
+}

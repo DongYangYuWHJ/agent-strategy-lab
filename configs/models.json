@@ -14,7 +14,7 @@
         "verified_on": "2026-10-10",
         "source": "https://developers.openai.com/api/docs/models/gpt-6-luna"
       },
-      "max_output_tokens": 2048,
+      "max_output_tokens": 16384,
       "reasoning_effort": "medium"
     },
     {
@@ -29,7 +29,7 @@
         "verified_on": "2026-10-10",
         "source": "https://api-docs.deepseek.com/quick_start/pricing/"
       },
-      "max_output_tokens": 2048,
+      "max_output_tokens": 16384,
       "reasoning_effort": "low"
     },
     {

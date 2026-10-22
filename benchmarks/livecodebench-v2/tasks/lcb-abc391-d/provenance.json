@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc391-d",
+  "question_id": "abc391_d",
+  "title": "Gravity",
+  "difficulty": "medium",
+  "platform": "atcoder",
+  "contest_date": "2025-02-01T00:00:00",
+  "manifest": "tasks/lcb-abc391-d/task.json",
+  "public_cases": 2,
+  "private_cases": 40,
+  "record_sha256": "4368d742fff1673867d691202a5d414d8111100b557cfb4231decbd6cd15203c",
+  "split": "development",
+  "topic": "sorting_event_queries"
+}

@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc391-b",
+  "question_id": "abc391_b",
+  "title": "Seek Grid",
+  "difficulty": "easy",
+  "platform": "atcoder",
+  "contest_date": "2025-02-01T00:00:00",
+  "manifest": "tasks/lcb-abc391-b/task.json",
+  "public_cases": 2,
+  "private_cases": 40,
+  "record_sha256": "09fd65e4ddc7222fa45276f2b764638d94f89ae3e7b92784ae69226ed3563371",
+  "split": "development",
+  "topic": "grid_search"
+}

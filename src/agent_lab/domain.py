@@ -58,8 +58,10 @@ class Limits:
     max_repairs: int = 2
     max_no_progress: int = 2
     max_total_tokens: int = 100000
-    max_request_bytes: int = 32000
+    max_request_bytes: int = 1048576
+    max_estimated_input_tokens: int = 64000
     max_seconds: int = 180
+    request_timeout_seconds: int = 300
     check_timeout_seconds: int = 15
     max_cost_usd: str = "2.00"
 
@@ -69,9 +71,12 @@ class Limits:
                 money(value)
             elif type(value) is not int or value < (0 if name == "max_repairs" else 1):
                 raise ValueError(f"Invalid limit: {name}")
-        # Keep first-version requests below long-context pricing tiers.
-        if self.max_request_bytes > 64000:
-            raise ValueError("v1 max_request_bytes must be <= 64000; long-context pricing is not implemented")
+        # Transport size and estimated model input are separate limits: encrypted
+        # continuation state can be much larger than the tokens it represents.
+        if self.max_request_bytes > 1048576:
+            raise ValueError("max_request_bytes must be <= 1048576")
+        if self.max_estimated_input_tokens > 64000:
+            raise ValueError("max_estimated_input_tokens must be <= 64000; long-context pricing is not implemented")
 
 
 @dataclass(frozen=True)
@@ -217,3 +222,4 @@ class ToolCall:
 class AgentReply:
     calls: list[ToolCall]
     text: str = ""
+    incomplete_reason: str = ""

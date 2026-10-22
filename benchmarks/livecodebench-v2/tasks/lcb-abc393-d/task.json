@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "lcb-abc393-d",
+  "description": "LiveCodeBench / hard / Swap to Gather\n\nYou are given a string S of length N consisting of 0 and 1. It is guaranteed that S contains at least one 1.\nYou may perform the following operation any number of times (possibly zero):\n\n- Choose an integer i (1 \\leq i \\leq N-1) and swap the i-th and (i+1)-th characters of S.\n\nFind the minimum number of operations needed so that all 1s are contiguous.\nHere, all 1s are said to be contiguous if and only if there exist integers l and r (1 \\leq l \\leq r \\leq N) such that the i-th character of S is 1 if and only if l \\leq i \\leq r, and 0 otherwise.\n\nInput\n\nThe input is given from Standard Input in the following format:\nN\r\nS\n\nOutput\n\nPrint the answer.\n\nConstraints\n\n\n- 2 \\leq N \\leq 5 \\times 10^5\n- N is an integer.\n- S is a length N string of 0 and 1.\n- S contains at least one 1.\n\nSample Input 1\n\n7\r\n0101001\n\nSample Output 1\n\n3\r\n\nFor example, the following three operations make all 1s contiguous:\n\n- Choose i=2 and swap the 2nd and 3rd characters. Then, S= 0011001.\n- Choose i=6 and swap the 6th and 7th characters. Then, S= 0011010.\n- Choose i=5 and swap the 5th and 6th characters. Then, S= 0011100.\n\nIt is impossible to do this in two or fewer swaps, so the answer is 3.\n\nSample Input 2\n\n3\r\n100\n\nSample Output 2\n\n0\r\n\nAll 1s are already contiguous, so no swaps are needed.\n\nSample Input 3\n\n10\r\n0101001001\n\nSample Output 3\n\n7\n\nImplement solution.py as a Python standard-input/output program. Use the standard library only. Each test starts a fresh process. Do not read test files or modify the evaluator.",
+  "acceptance": [
+    "Match the specified input/output behavior for all public and held-out cases.",
+    "Read stdin and write stdout; no external dependencies or files are required."
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "solution.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

@@ -1,0 +1,17 @@
+{
+  "dataset": "livecodebench/code_generation_lite",
+  "revision": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+  "source_file": "test6.jsonl",
+  "task_id": "lcb-abc391-e",
+  "question_id": "abc391_e",
+  "title": "Hierarchical Majority Vote",
+  "difficulty": "hard",
+  "platform": "atcoder",
+  "contest_date": "2025-02-01T00:00:00",
+  "manifest": "tasks/lcb-abc391-e/task.json",
+  "public_cases": 2,
+  "private_cases": 40,
+  "record_sha256": "41c7aaeb57e5ad72bba6d3f2f99bafd95b8ec483f842548285866edce09a38e9",
+  "split": "development",
+  "topic": "tree_dynamic_programming"
+}
