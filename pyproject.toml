@@ -9,6 +9,9 @@ description = "Reproducible single-agent coding experiments with usage accountin
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+token-counting = ["tokenizers==0.22.2", "Jinja2==3.1.6"]
+
 [project.scripts]
 agent-lab = "agent_lab.cli:main"
 

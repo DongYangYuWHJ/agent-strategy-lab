@@ -10,7 +10,12 @@
 
 ## 在这台 Windows 电脑上开始
 
-无需安装第三方 Python 包。入口自动使用现有的 Codex Python 运行时；其他电脑可以使用 Python 3.11+。
+模拟演示无需第三方包。真实模型目录现启用匹配模型的输入 Token 计数；DeepSeek 的本地计数需要分词依赖，本机已安装在项目 `.venv` 中。入口优先使用项目 `.venv`，否则使用现有 Codex Python 运行时或系统 Python 3.11+。在其他电脑首次准备：
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[token-counting]"
+```
 
 在项目目录运行：
 
@@ -127,7 +132,8 @@ Claude 可单独使用 `configs/claude-connectivity.json`：Haiku 5.5、同一�
 - 总 Token = 输入 + 输出。缓存读取／写入是输入的子集；推理 Token 是输出的子集，不重复相加。
 - 费用 = 归一化后的用量 × 本批次保存的价格。它是估算费用，不是供应商实付账单。
 - DeepSeek 第一版统一使用峰时价格保守估算；非峰时真实账单可能更低。长上下文阶梯、Fast／Flex／Batch、区域加价与服务端付费工具尚未支持。
-- 请求体传输上限与输入 Token 估计分开：默认请求体最多 1 MiB，估计输入最多 64000 Token。普通内容按 UTF-8 字节数加协议余量保守估计；OpenAI 加密推理续接字段不按密文字节当作 Token，而按产生这些字段的各次响应完整输出 Token 数累计预留，原始字段仍完整发送。另加本次最大输出后检查整题 Token 与金额预算；实际费用仍只用供应商报告的用量计算。估计并非供应商认证的分词结果，不能保证精确的最高账单或所有模型的价格阶梯边界。
+- 请求体传输上限与输入 Token 预留分开：默认请求体最多 1 MiB，预留输入最多 64000 Token。模型目录的 `token_counting: "model"` 启用匹配计数：DeepSeek 使用固定版本的官方 V4.1 文本分词文件和对话模板，本地包含工具和推理历史；OpenAI／Claude 使用各自的官方输入计数接口。计数后加 `limits.token_count_margin`（默认 256），再加本次最大输出检查整题 Token 与金额预算。原始续接信息完整保留，实际用量仍只取生成响应的 usage，不把计数结果当作已消耗 Token。
+- `token_counting: "estimate"` 保留旧的保守估计方式，供明确选择的旧配置／模拟使用；匹配计数失败时记录 `input_count_error`，不静默退回旧估计，不发送该次生成请求、不重试，并停止批次。计数调用有单独的 30 秒超时和事件记录，不计为生成调用次数；网络延迟计入整题运行时间。固定 tokenizer 版本、摘要和计数方法写入运行／批次快照，实际计数与生成 usage 的差异写入事件。计数与余量仍不能保证精确的最高账单或所有模型的价格阶梯边界。
 - 供应商明确报告输出额度耗尽时，记录 `output_token_limit`，保留已花用量，不执行部分工具调用、不当成提交、不消耗修复次数，也不自动重试。请求体超限与估计输入超限分别记录 `request_size_limit`、`input_estimate_limit`。
 - 调用次数、工具步骤和修复次数由框架控制；运行时间在阶段切换时检查，并用于网络／检查超时。单次 API 请求等待上限由实验配置的 `limits.request_timeout_seconds` 控制，目前为 300 秒（5 分钟）；单任务 `run` 默认读取 `configs/limits.json` 的同名字段。整题剩余时间不足时，以剩余时间为准。供应商端已在途的推理无法由本地框架保证取消。
 - 未知费用预留单独列出；有未知用量时，单位合格交付成本显示“费用不完整”。
@@ -207,8 +213,7 @@ artifacts/<batch>/
 测试不调用任何真实 API：
 
 ```powershell
-$LabPython = Join-Path $env:USERPROFILE '.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
-& $LabPython -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
 适配器实现依据：

@@ -65,9 +65,11 @@ def load_experiment(path, catalog, model_filter=None):
 
 def run_batch(path, catalog, output, model_filter=None, resume=False):
     tasks, models, limits, repeats, seed, batch_budget = load_experiment(path, catalog, model_filter)
+    token_counters = {}
     for task in tasks:
         for model in models:
-            make_provider(model, SYSTEM, "preflight", TOOLS, task)
+            provider = make_provider(model, SYSTEM, "preflight", TOOLS, task)
+            token_counters[model.id] = provider.token_counting_info()
     plan = [{"cell": f"{task.id}:{model.id}:{repeat}", "task": task.id, "model": model.id, "repeat": repeat}
             for repeat in range(repeats) for task in tasks for model in models]
     random.Random(seed).shuffle(plan)
@@ -76,6 +78,7 @@ def run_batch(path, catalog, output, model_filter=None, resume=False):
                 "task_fingerprints": {task.id: task_fingerprint(task) for task in tasks},
                 "task_manifests": {task.id: str(task.manifest_path) for task in tasks},
                 "models": [asdict(model) for model in models], "limits": asdict(limits),
+                "token_counting": token_counters,
                 "batch_budget_usd": str(batch_budget), "strategy": "single_agent", "plan": plan,
                 "system_prompt": SYSTEM, "tools": TOOLS, "seed": seed}
     output = output.resolve()
@@ -137,6 +140,9 @@ def run_batch(path, catalog, output, model_filter=None, resume=False):
             print(f"{task.id} / {cell['model']} [{cell['repeat'] + 1}]: {result['status']} ({result['stop_reason']})", flush=True)
             if result["status"] == "cancelled":
                 manifest["status"] = "cancelled"
+                break
+            if result["stop_reason"] == "input_count_error":
+                manifest["status"] = "input_count_error"
                 break
             if not result["accounting"]["usage_complete"]:
                 manifest["status"] = "usage_unknown"

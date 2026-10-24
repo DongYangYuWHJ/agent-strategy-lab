@@ -25,7 +25,8 @@
 | [005](decisions/005-development-and-holdout.md) | 扩为 18 题，区分调参与保留评估 | 任务与配置已完成；未运行新增模型实验 | 验证集／测试集、分层抽样、避免反馈污染 |
 | [006](decisions/006-quarantine-invalid-task.md) | 剔除违反题面约束的上游测试任务 | 已剔除、替换并重新审计 | 审计评测数据、记录排除标准、避免事后挑题 |
 | [007](decisions/007-output-token-budget-proposal.md) | 用研究与分档实验选择单次输出额度 | 研究与参数建议；未改配置、未运行 | 区分额度上限与推理干预，测量成本与效果的取舍 |
-| [008](decisions/008-continuation-and-limit-fix.md) | 提高输出额度，修复截断与 Luna 续接限制 | 已实现，离线验证；未运行新模型实验 | 分开传输与 Token 预算，按协议识别未完成响应 |
+| [008](decisions/008-continuation-and-limit-fix.md) | 提高输出额度，修复截断与 Luna 续接限制 | 已实现并验证；含两模型线上验证补记 | 分开传输与 Token 预算，按协议识别未完成响应 |
+| [009](decisions/009-single-agent-summary-and-parameter-failures.md) | 五模型单 Agent 汇总与参数导致的停止 | 已核对 60 项原始结果；未调参、未重跑 | 区分真实用量与保守预留，分开额度停止与答案错误 |
 
 ## 调参集为什么借鉴机器学习
 

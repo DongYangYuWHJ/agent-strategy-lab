@@ -118,9 +118,10 @@ class CredentialTests(unittest.TestCase):
                "output": [{"type": "function_call", "call_id": "submit", "name": "submit",
                            "arguments": json.dumps({"summary": "Unmodified submission"})}],
                "usage": {"input_tokens": 100, "output_tokens": 20}}
-        with patch("agent_lab.providers.request_json", return_value=raw) as request:
+        with patch("agent_lab.providers.request_json", side_effect=[{"input_tokens": 100}, raw]) as request:
             result = run_task(task, model, Limits(max_repairs=0), self.root / "runs")
-        request.assert_called_once()
+        self.assertEqual(request.call_count, 2)
+        self.assertTrue(request.call_args_list[0].args[0].endswith("/responses/input_tokens"))
         self.assertEqual(result["stop_reason"], "repair_limit")
         self.assertTrue(result["accounting"]["usage_complete"])
         write_report(self.root / "runs")

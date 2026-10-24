@@ -62,6 +62,8 @@ class Limits:
     max_estimated_input_tokens: int = 64000
     max_seconds: int = 180
     request_timeout_seconds: int = 300
+    token_count_timeout_seconds: int = 30
+    token_count_margin: int = 256
     check_timeout_seconds: int = 15
     max_cost_usd: str = "2.00"
 
@@ -102,6 +104,7 @@ class Model:
     max_output_tokens: int = 4096
     reasoning_effort: str = "medium"
     mock_behavior: str = "pass"
+    token_counting: str = "estimate"
 
     def __post_init__(self):
         safe_id(self.id)
@@ -119,6 +122,10 @@ class Model:
             raise ValueError("DeepSeek effort must be none, low, high, or max")
         if self.mock_behavior not in {"pass", "stuck", "invalid", "missing_usage"}:
             raise ValueError("Invalid mock behavior")
+        if self.token_counting not in {"estimate", "model"}:
+            raise ValueError("token_counting must be estimate or model")
+        if self.provider == "mock" and self.token_counting != "estimate":
+            raise ValueError("Mock providers only support estimated token counts")
 
 
 def load_models(path: Path) -> dict[str, Model]:

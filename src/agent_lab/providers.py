@@ -6,6 +6,7 @@ import urllib.error
 import urllib.request
 from .domain import AgentReply, Model, ToolCall, Usage, read_json
 from .settings import require_credential
+from .token_counting import TokenCountError, deepseek_counter, validated_count
 
 
 class ProviderError(Exception):
@@ -59,6 +60,13 @@ class Provider:
         # for plain text, but not appropriate for opaque encrypted state.
         return len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) + 2048
 
+    def token_counting_info(self):
+        return {"mode": self.model.token_counting,
+                "method": "legacy_estimate" if self.model.token_counting == "estimate" else self.model.provider + "_count_api"}
+
+    def count_input_tokens(self, payload, timeout):
+        raise TokenCountError("No model token counter is configured for this provider")
+
     def send(self, payload, timeout):
         raise NotImplementedError
 
@@ -93,6 +101,17 @@ class OpenAIProvider(Provider):
     def send(self, payload, timeout):
         return request_json("https://api.openai.com/v1/responses", payload,
                             {"Authorization": "Bearer " + self._api_key}, timeout)
+
+    def count_input_tokens(self, payload, timeout):
+        count_payload = {key: payload[key] for key in ("model", "instructions", "input", "tools")}
+        try:
+            raw = request_json("https://api.openai.com/v1/responses/input_tokens", count_payload,
+                               {"Authorization": "Bearer " + self._api_key}, timeout)
+            return validated_count(raw["input_tokens"])
+        except ProviderError as exc:
+            raise TokenCountError(f"OpenAI token count endpoint failed: {exc}; no generation request was sent") from None
+        except (KeyError, TypeError, ValueError):
+            raise TokenCountError("OpenAI input token counting failed; no generation request was sent") from None
 
     def usage(self, raw):
         usage = raw["usage"]
@@ -142,6 +161,21 @@ class OpenAIProvider(Provider):
 class DeepSeekProvider(Provider):
     def preflight(self):
         self._api_key = require_credential("deepseek")
+        if self.model.token_counting == "model":
+            deepseek_counter()
+
+    def token_counting_info(self):
+        if self.model.token_counting == "model":
+            return deepseek_counter().metadata
+        return super().token_counting_info()
+
+    def count_input_tokens(self, payload, timeout):
+        try:
+            return validated_count(deepseek_counter().count(payload))
+        except TokenCountError:
+            raise
+        except Exception as exc:
+            raise TokenCountError(f"DeepSeek local input token counting failed ({type(exc).__name__}); no generation request was sent") from None
 
     def prepare(self):
         return {"model": self.model.model,
@@ -192,6 +226,17 @@ class AnthropicProvider(Provider):
     def send(self, payload, timeout):
         return request_json("https://api.anthropic.com/v1/messages", payload,
                             {"x-api-key": self._api_key, "anthropic-version": "2023-06-01"}, timeout)
+
+    def count_input_tokens(self, payload, timeout):
+        count_payload = {key: payload[key] for key in ("model", "system", "messages", "tools", "thinking")}
+        try:
+            raw = request_json("https://api.anthropic.com/v1/messages/count_tokens", count_payload,
+                               {"x-api-key": self._api_key, "anthropic-version": "2023-06-01"}, timeout)
+            return validated_count(raw["input_tokens"])
+        except ProviderError as exc:
+            raise TokenCountError(f"Claude token count endpoint failed: {exc}; no generation request was sent") from None
+        except (KeyError, TypeError, ValueError):
+            raise TokenCountError("Claude input token counting failed; no generation request was sent") from None
 
     def usage(self, raw):
         usage = raw["usage"]

@@ -48,20 +48,49 @@
 |---|---|---|
 | `max_output_tokens` | `configs/models.json` 中各模型条目 | 单次模型请求的最大输出；目前 DeepSeek、Luna、Sol、Sonnet、Haiku 都是 16384，Astra、Fable 暂保留原设置。推理也可能消耗这部分额度 |
 | `reasoning_effort` | 同上 | 模型推理档位；跨供应商不保证同名档位等价 |
+| `token_counting` | 同上 | 当前为 `model`：匹配模型计数；`estimate` 为明确选择旧估计方式 |
 | `limits.max_total_tokens` | 所运行的实验 JSON | 一道任务所有请求的输入＋输出累计上限，目前 100000 |
 | `limits.max_request_bytes` | 同上 | 单次请求 JSON 的 UTF-8 传输字节上限，目前 1048576（1 MiB），也是程序允许的最大值；不是模型的 Token 上下文窗口 |
 | `limits.max_estimated_input_tokens` | 同上 | 单次输入的保守 Token 估计上限，目前 64000；用于费用和累计 Token 准入，不能代替供应商分词计数 |
 | `limits.request_timeout_seconds` | 同上 | 单次 API 请求等待上限，目前 300 秒（5 分钟）；整题剩余时间不足时以剩余时间为准 |
+| `limits.token_count_timeout_seconds` | 同上 | 官方计数接口的等待上限，默认 30 秒；与生成请求等待时间分开 |
+| `limits.token_count_margin` | 同上 | 在匹配计数上额外预留的输入 Token，默认 256；不是实际消耗 |
 | `limits.max_cost_usd` | 同上 | 单道任务的费用准入预算，目前 0.20 美元 |
 | `batch_budget_usd` | 同上 | 整批累计费用准入预算，目前 1 美元 |
 
 例如，要试验 8192 的单次输出额度，应修改 DeepSeek 与 Luna 各自条目的 `max_output_tokens`，而不是只提高整题累计 Token。扩大输出额度会提高发送前费用／Token 预留；批次可能因预算不足而提前停止，报告会记录原因。供应商明确报告输出额度用尽时，现记录 `output_token_limit` 并保留费用；不再把截断空回复当成提交，不执行截断响应中的工具，也不自动重试。
 
-Luna 上轮约 37 KB 的后续请求是被旧版 32000 字节保护拦下的。现在传输层允许 1 MiB；发送和保存的加密续接内容保持完整。输入估计排除 reasoning 项的 `encrypted_content` 字节，再加上产生加密项的各次响应完整输出 Token 数（包含可见输出，取保守值），并计算普通请求内容字节与 2048 协议余量。它是本地准入估计，既没有把密文当成普通文本分词，也没有把续接内容当成零 Token。DeepSeek／Anthropic 的普通协议内容仍按字节加余量估计。
+Luna 上轮约 37 KB 的后续请求是被旧版 32000 字节保护拦下的。现在传输层允许 1 MiB；发送和保存的续接内容保持完整。2026-10-23 起，真实模型目录启用匹配模型的输入计数：DeepSeek 使用本地固定版本的官方 V4.1 分词文件和对话模板，包含工具定义、调用结果及完整推理历史；OpenAI／Claude 分别使用官方计数接口。输入预留为计数结果加 256 Token 余量，不再直接把请求字节数当作 Token。API 计数端点失败时停止为 `input_count_error`，不发送生成请求，也不自动回退或重试；本地 DeepSeek 计数不额外联网。
+
+旧的估计方式仍可通过模型条目的 `token_counting: "estimate"` 显式选择。无论哪种方式，最终用量和费用都取生成响应的 usage。计数、余量、接口方法与本地 tokenizer 的版本／摘要均可追溯；实际计数不等同于精确账单上界。
 
 传输包过大停止为 `request_size_limit`；估计输入超过 64000 停止为 `input_estimate_limit`；整题累计 Token、预算、时间、调用次数等继续分别限制。每次准备请求的传输字节与输入估计都会写入事件记录，即使随后在发送前被拦截。提高输出上限可能使下一轮的代码、工具调用或续接内容变大，因此两个限制有间接关联，没有固定换算比例。
 
 更改模型目录会影响之后引用它的所有原生实验。调整任务或参数后使用新的输出目录，旧批次的 `--resume` 会核对并拒绝配置变化。先用 `validate --experiment ...` 检查配置；它不会调用模型。
+
+## DeepSeek 参数复查：匹配计数与 32k 输出
+
+`configs/deepseek-parameter-check.json` 只选上轮受额度影响的两道困难题：Dangerous Sugoroku 和 Hierarchical Majority Vote，只运行 DeepSeek，每题一次。累计 Token 仍为 100000，单次生成等待仍为 300 秒，单题／整批金额预算仍为 0.20／1 美元，推理档位仍为 low；本次没有更改提示词或自动缩减输出额度。
+
+先用匹配计数和原 16k 输出，检查预留修正本身的影响：
+
+```powershell
+.\run-lab.cmd batch --experiment configs/deepseek-parameter-check.json --output artifacts/deepseek-counted-16k-01
+```
+
+再使用同一任务配置和专用模型目录，仅把 DeepSeek 单次输出提高到 32768：
+
+```powershell
+.\run-lab.cmd batch --experiment configs/deepseek-parameter-check.json --catalog configs/models-deepseek-32k.json --output artifacts/deepseek-counted-32k-01
+```
+
+这两条都会产生真实模型费用，本次准备工作没有执行。每条各运行两项，不会包含 Luna 或其他模型。第二条读取 `configs/models-deepseek-32k.json` 中的 `max_output_tokens`；第一条读取 `configs/models.json`，其中 DeepSeek 仍保留 16384。程序当前允许单次输出最大为 32768。输出目录如果已存在，应换一个新的后缀，不自动覆盖或续跑旧实验。
+
+建议此次只比较计数方式与 16k／32k，先保留累计额度、时间、推理档位、提示词和任务。后续若再次触发其他门槛，先查看停止原因再讨论调整。开发配置中的 `token_count_margin=256` 为计数余量，暂不依据一次成功就减小。保留评估集仍不参与这项复查。
+
+分词资产来源和版本见 [资产说明](../assets/tokenizers/deepseek-v41/README.md)。OpenAI 和 Claude 的方法分别依据 [OpenAI 官方计数说明](https://developers.openai.com/api/docs/guides/token-counting)、[Claude 官方计数说明](https://platform.claude.com/docs/en/build-with-claude/token-counting)。仅本地计数和模拟测试已验证；OpenAI／Claude 新计数端点的本账户权限和实际网络调用尚未验证。
+
+离线核对上轮 DeepSeek 的 54 次保存请求，本地计数均与对应响应的输入 usage 相同。重建此前被拦截的第 6 次请求，输入计数为 15646，替代旧估计 53268；加 256 余量后，16k／32k 的累计准入计算分别为 67702／84086，均低于 100000。这只是旧请求的计数与准入重算，不是新的解题结果。[离线核对记录](../artifacts/token-counting-audit-20261023/audit.json)
 
 ## 新增候选模型批次
 

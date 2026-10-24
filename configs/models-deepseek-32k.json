@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "notes": "DeepSeek-only 32k output comparison; model counting enabled. Same frozen prices and effort as configs/models.json. No change to the shared 16k baseline.",
+  "models": [
+    {
+      "id": "deepseek-flash",
+      "provider": "deepseek",
+      "token_counting": "model",
+      "model": "deepseek-flash",
+      "pricing": {
+        "input": "0.30",
+        "output": "1.20",
+        "cached_input": "0.006",
+        "cache_write": "0",
+        "verified_on": "2026-10-10",
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "max_output_tokens": 32768,
+      "reasoning_effort": "low"
+    }
+  ]
+}

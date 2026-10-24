@@ -18,6 +18,8 @@
     "max_estimated_input_tokens": 64000,
     "max_seconds": 900,
     "request_timeout_seconds": 300,
+    "token_count_timeout_seconds": 30,
+    "token_count_margin": 256,
     "check_timeout_seconds": 300,
     "max_cost_usd": "0.20"
   },

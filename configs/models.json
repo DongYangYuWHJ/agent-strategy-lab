@@ -5,6 +5,7 @@
     {
       "id": "gpt-6-luna",
       "provider": "openai",
+      "token_counting": "model",
       "model": "gpt-6-luna",
       "pricing": {
         "input": "0.10",
@@ -20,6 +21,7 @@
     {
       "id": "deepseek-flash",
       "provider": "deepseek",
+      "token_counting": "model",
       "model": "deepseek-flash",
       "pricing": {
         "input": "0.30",
@@ -35,6 +37,7 @@
     {
       "id": "gpt-6.1-sol",
       "provider": "openai",
+      "token_counting": "model",
       "model": "gpt-6.1-sol",
       "pricing": {
         "input": "2",
@@ -50,6 +53,7 @@
     {
       "id": "claude-sonnet-5-5",
       "provider": "anthropic",
+      "token_counting": "model",
       "model": "claude-sonnet-5-5",
       "pricing": {
         "input": "2",
@@ -65,6 +69,7 @@
     {
       "id": "claude-haiku-5-5",
       "provider": "anthropic",
+      "token_counting": "model",
       "model": "claude-haiku-5-5",
       "pricing": {
         "input": "0.10",
@@ -80,6 +85,7 @@
     {
       "id": "gpt-6-astra",
       "provider": "openai",
+      "token_counting": "model",
       "model": "gpt-6-astra",
       "pricing": {
         "input": "10",
@@ -95,6 +101,7 @@
     {
       "id": "claude-fable-5-1",
       "provider": "anthropic",
+      "token_counting": "model",
       "model": "claude-fable-5-1",
       "pricing": {
         "input": "10",

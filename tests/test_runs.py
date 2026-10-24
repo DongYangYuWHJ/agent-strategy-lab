@@ -18,6 +18,7 @@ from agent_lab.tools import TOOLS
 from agent_lab.reporting import collect_results, write_report
 from agent_lab.runner import run_task
 from agent_lab.workspace import Workspace, file_hash
+from agent_lab.token_counting import TokenCountError
 
 
 class RunTests(unittest.TestCase):
@@ -237,6 +238,21 @@ class BatchTests(unittest.TestCase):
         with patch.object(MockProvider, "send", side_effect=AssertionError("must not rerun")):
             self.run_batch(resume=True)
         self.assertEqual(before, [item["run_id"] for item in collect_results(self.root / "batch")])
+
+    def test_count_service_failure_stops_batch_without_generation_or_retry(self):
+        model = replace(self.models["mock-pass"], provider="openai", model="test-model", token_counting="model")
+        self.models["mock-pass"] = model
+        client = OpenAIProvider(model, SYSTEM, "task", TOOLS)
+        with patch("agent_lab.experiments.make_provider", return_value=client), \
+             patch("agent_lab.runner.make_provider", return_value=client), \
+             patch.object(client, "count_input_tokens", side_effect=TokenCountError("offline error")) as count, \
+             patch.object(client, "send", side_effect=AssertionError("must not generate")):
+            manifest = self.run_batch()
+        self.assertEqual(manifest["status"], "input_count_error")
+        self.assertEqual(count.call_count, 1)
+        results = collect_results(self.root / "batch")
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["accounting"]["calls"], 0)
 
     def test_resume_rejects_changed_configuration(self):
         self.run_batch()

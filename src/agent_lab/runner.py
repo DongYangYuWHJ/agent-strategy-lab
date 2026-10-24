@@ -11,6 +11,7 @@ from .evaluation import Checks
 from .providers import ProviderError, make_provider
 from .strategies import Action, get_strategy
 from .telemetry import Recorder
+from .token_counting import TokenCountError
 from .tools import TOOLS, execute, validate_call
 from .workspace import Workspace, file_hash, inventory
 
@@ -52,6 +53,7 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
                      "model": asdict(model), "limits": asdict(limits),
                      "strategy": {"name": strategy.name, "version": strategy.version},
                      "system_prompt": SYSTEM, "tool_definitions": TOOLS,
+                     "token_counting": provider.token_counting_info(),
                      "execution_kind": "simulated" if model.provider == "mock" else "live"}
     save_json(directory / "config.json", configuration)
     save_json(directory / "task.json", task.public_contract())
@@ -105,11 +107,29 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
         checks = Checks(task, directory, workspace, limits.check_timeout_seconds)
         while status == "running":
             remaining()
+            if ledger.calls >= limits.max_calls:
+                raise StopRun("call_limit")
             state("executing")
             payload = provider.prepare()
             encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-            estimated_input_tokens = provider.estimate_input_tokens(payload)
-            recorder.event("request_prepared", request_bytes=len(encoded), estimated_input_tokens=estimated_input_tokens)
+            if len(encoded) > limits.max_request_bytes:
+                recorder.event("request_prepared", request_bytes=len(encoded), estimated_input_tokens=None)
+                raise StopRun("request_size_limit")
+            input_token_count = None
+            if model.token_counting == "model":
+                state("counting_input_tokens")
+                try:
+                    input_token_count = provider.count_input_tokens(payload, min(limits.token_count_timeout_seconds, remaining()))
+                except TokenCountError as exc:
+                    recorder.event("input_token_count_failed", message=str(exc))
+                    raise StopRun("input_count_error") from None
+                estimated_input_tokens = input_token_count + limits.token_count_margin
+                recorder.event("input_tokens_counted", input_tokens=input_token_count, margin=limits.token_count_margin)
+                remaining()
+            else:
+                estimated_input_tokens = provider.estimate_input_tokens(payload)
+            recorder.event("request_prepared", request_bytes=len(encoded), input_token_count=input_token_count,
+                           estimated_input_tokens=estimated_input_tokens)
             reservation = ledger.reserve(model, len(encoded), estimated_input_tokens)
             index = ledger.calls
             call_dir = directory / "calls"
@@ -136,6 +156,9 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
                 recorder.event("usage_unknown", call=index, estimated_reserve_usd=str(reservation))
                 raise StopRun("usage_unknown")
             recorder.event("request_completed", **entry)
+            if input_token_count is not None:
+                recorder.event("input_count_comparison", call=index, counted_input_tokens=input_token_count,
+                               reported_input_tokens=usage.input_tokens, reserved_input_tokens=estimated_input_tokens)
             state("model_response_recorded")
             ledger.check_observed_limits()
             remaining()
