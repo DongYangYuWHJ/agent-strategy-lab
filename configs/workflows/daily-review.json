@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "daily-review-v1",
+  "turns": [
+    {
+      "id": "plan",
+      "prompt": "先阅读任务和相关代码，说明实施方案，暂不修改代码。",
+      "allow_write": false
+    },
+    {
+      "id": "implement",
+      "prompt": "你确定目前的实施方针符合要求吗？有没有更简单、更高效的解决方案？核实后按你认为合适的方案实施，并完成可用的检查。",
+      "allow_write": true
+    },
+    {
+      "id": "requirements-review",
+      "prompt": "你确定目前的实施覆盖了原始要求吗？请对照要求检查；如有遗漏就修正，没有问题则保留。",
+      "allow_write": true
+    },
+    {
+      "id": "verification-review",
+      "prompt": "我们的测试覆盖了哪些场景？是否有超出题目范围或缺少证据的完成声明？请核实必要的边界情况，说明已验证与未验证的部分，完成最终交付。",
+      "allow_write": true
+    }
+  ]
+}

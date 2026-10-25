@@ -64,6 +64,9 @@ def load_experiment(path, catalog, model_filter=None):
 
 
 def run_batch(path, catalog, output, model_filter=None, resume=False):
+    if read_json(path).get("backend") == "opencode":
+        from .workflow_experiments import run_workflow_batch
+        return run_workflow_batch(path, catalog, output, model_filter, resume)
     tasks, models, limits, repeats, seed, batch_budget = load_experiment(path, catalog, model_filter)
     token_counters = {}
     for task in tasks:

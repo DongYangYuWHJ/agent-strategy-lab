@@ -27,6 +27,7 @@
 | [007](decisions/007-output-token-budget-proposal.md) | 用研究与分档实验选择单次输出额度 | 研究与参数建议；未改配置、未运行 | 区分额度上限与推理干预，测量成本与效果的取舍 |
 | [008](decisions/008-continuation-and-limit-fix.md) | 提高输出额度，修复截断与 Luna 续接限制 | 已实现并验证；含两模型线上验证补记 | 分开传输与 Token 预算，按协议识别未完成响应 |
 | [009](decisions/009-single-agent-summary-and-parameter-failures.md) | 五模型单 Agent 汇总与参数导致的停止 | 已核对 60 项原始结果；未调参、未重跑 | 区分真实用量与保守预留，分开额度停止与答案错误 |
+| [010](decisions/010-conversation-workflow-evaluation.md) | 通用 prompt 工作流（简记，目的见 009） | 五模型单 Agent 线上验证通过；协作待验证 | 相同交互下比较架构，整段计量，最终独立验收 |
 
 ## 调参集为什么借鉴机器学习
 
@@ -56,3 +57,4 @@
 - [当前架构和公共约定](architecture.md)
 - [LiveCodeBench 任务与调参方法](livecodebench.md)
 - [OpenCode 接入现状](opencode.md)
+- [日常开发会话工作流与验收设计](workflow-experiments.md)

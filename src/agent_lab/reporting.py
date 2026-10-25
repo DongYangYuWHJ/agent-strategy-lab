@@ -22,12 +22,17 @@ def incomplete_result(directory):
     known = sum((Decimal(item["estimated_cost_usd"]) for item in completed.values()), Decimal(0))
     reserve = sum((Decimal(starts[index]["estimated_reserve_usd"]) for index in outstanding), Decimal(0))
     tokens = sum(item["usage"]["input_tokens"] + item["usage"]["output_tokens"] for item in completed.values())
-    return {"run_id": directory.name, "task_id": config["task"]["id"], "model_id": config["model"]["id"],
+    result = {"run_id": directory.name, "task_id": config["task"]["id"], "model_id": "--".join(m["id"] for m in config.get("models", [config["model"]])),
             "strategy": config["strategy"]["name"], "execution_kind": config["execution_kind"],
             "status": "interrupted", "stop_reason": "incomplete_run", "accepted": False,
             "duration_seconds": 0, "repairs": 0, "artifact_dir": str(directory),
             "accounting": {"estimated_cost_usd": str(known), "unknown_cost_reserve_usd": str(reserve),
                            "total_tokens": tokens, "calls": len(starts), "usage_complete": not outstanding}}
+    if config.get("workflow"):
+        result.update(backend=config["backend"], workflow_id=config["workflow"]["id"], turns=[],
+                      turns_completed=sum(e["type"] == "turn_completed" for e in events),
+                      turns_expected=len(config["workflow"]["turns"]))
+    return result
 
 
 def collect_results(root: Path):
@@ -49,15 +54,15 @@ def collect_results(root: Path):
 def summarize(results):
     grouped = {}
     for result in results:
-        key = (result["execution_kind"], result["strategy"], result["model_id"])
+        key = (result["execution_kind"], result["strategy"], result["model_id"], result.get("backend", "native"), result.get("workflow_id", ""))
         grouped.setdefault(key, []).append(result)
     rows = []
-    for (kind, strategy, model), group in sorted(grouped.items()):
+    for (kind, strategy, model, backend, workflow), group in sorted(grouped.items()):
         cost = sum((Decimal(item["accounting"]["estimated_cost_usd"]) for item in group), Decimal(0))
         reserves = sum((Decimal(item["accounting"]["unknown_cost_reserve_usd"]) for item in group), Decimal(0))
         success = sum(item["accepted"] for item in group)
         complete = all(item["accounting"]["usage_complete"] for item in group)
-        rows.append({"execution_kind": kind, "strategy": strategy, "model_id": model,
+        rows.append({"execution_kind": kind, "strategy": strategy, "model_id": model, "backend": backend, "workflow_id": workflow,
                      "runs": len(group), "successes": success, "success_rate": success / len(group),
                      "known_estimated_cost_usd": str(cost), "unknown_cost_reserve_usd": str(reserves),
                      "unit_accepted_cost_usd": str(cost / success) if success and complete else None,
@@ -81,7 +86,8 @@ def write_report(root: Path):
     for row in rows:
         unit = row["unit_accepted_cost_usd"]
         display = f"{Decimal(unit):.6f}" if unit is not None else ("费用不完整" if not row["usage_complete"] else "无合格交付")
-        lines.append(f"| {'模拟' if row['execution_kind'] == 'simulated' else '真实'} | {row['strategy']} | {row['model_id']} | "
+        strategy_label = row['strategy'] + (f" / {row['backend']} / {row['workflow_id']}" if row['workflow_id'] else "")
+        lines.append(f"| {'模拟' if row['execution_kind'] == 'simulated' else '真实'} | {strategy_label} | {row['model_id']} | "
                      f"{row['successes']} / {row['runs']} | {row['total_tokens']} | "
                      f"{Decimal(row['known_estimated_cost_usd']):.6f} | {display} |")
     lines += ["", "失败尝试的费用包含在单位合格交付成本中；缺失用量时不计算该排名指标。",
@@ -92,5 +98,17 @@ def write_report(root: Path):
         lines.append(f"| {item['task_id']} | {item['model_id']} | {item['status']} | {item['stop_reason']} | "
                      f"{item['repairs']} | {'是' if item['accounting']['usage_complete'] else '否'} | {item['run_id']} |")
     lines.append("")
+    workflows = [item for item in results if item.get("workflow_id")]
+    if workflows:
+        lines += ["## 用户交互轮次", "", "每轮可以包含多次模型与工具调用；轮次完成不代表任务验收通过。", "",
+                  "| 任务 | 工作流 | 已完成轮次 | 最终验收 |", "|---|---|---:|---|"]
+        for item in workflows:
+            lines.append(f"| {item['task_id']} | {item['workflow_id']} | {item['turns_completed']} / {item['turns_expected']} | {item['stop_reason']} |")
+        lines.append("")
+        for item in workflows:
+            lines.append(f"\n运行 `{item['run_id']}`：\n")
+            for turn in item.get("turns", []):
+                lines.append(f"\n- {turn['id']}: {turn['status']}；模型调用 {turn.get('calls', '未完成')}；记录 `runs/{item['run_id']}/turns/{turn['index']:02d}-{turn['id']}/`。")
+        lines.append("")
     (root / "report.md").write_text("\n".join(lines), encoding="utf-8")
     return report

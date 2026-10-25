@@ -111,10 +111,19 @@ def main(argv=None):
             write_variance_report(args.input.resolve())
             print(args.input.resolve() / "variance.md")
         elif args.command == "validate":
+            if read_json(args.experiment).get("backend") == "opencode":
+                from .workflow_experiments import load_workflow_experiment
+                tasks, architectures, workflow, limits, repeats, seed, budget = load_workflow_experiment(args.experiment, load_models(args.catalog))
+                print(f"配置通过：OpenCode；{len(tasks)} 个任务，{len(architectures)} 种架构，{len(workflow.turns)} 轮交互，{repeats} 次重复；批次预算 ${budget}")
+                return 0
             tasks, models, limits, repeats, seed, budget = load_experiment(args.experiment, load_models(args.catalog))
             print(f"配置通过：{len(tasks)} 个任务，{len(models)} 个模型，{repeats} 次重复；批次预算 ${budget}")
         elif args.command == "list-tasks":
-            tasks, models, limits, repeats, seed, budget = load_experiment(args.experiment, load_models(args.catalog))
+            if read_json(args.experiment).get("backend") == "opencode":
+                from .workflow_experiments import load_workflow_experiment
+                tasks, models, workflow, limits, repeats, seed, budget = load_workflow_experiment(args.experiment, load_models(args.catalog))
+            else:
+                tasks, models, limits, repeats, seed, budget = load_experiment(args.experiment, load_models(args.catalog))
             if args.json:
                 print(json.dumps([{**task.public_contract(), "manifest": str(task.manifest_path)} for task in tasks],
                                  ensure_ascii=False, indent=2))

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "backend": "opencode",
+  "workflow": "workflows/daily-review.json",
+  "architectures": [
+    {"id": "deepseek-solo", "strategy": "single_agent", "models": ["deepseek-flash"]}
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "0.20",
+  "limits": {
+    "max_calls": 20,
+    "max_tool_steps": 40,
+    "max_total_tokens": 100000,
+    "max_seconds": 900,
+    "request_timeout_seconds": 300,
+    "check_timeout_seconds": 300,
+    "max_cost_usd": "0.20"
+  },
+  "tasks": ["../benchmarks/livecodebench-v2/tasks/lcb-abc387-a/task.json"]
+}

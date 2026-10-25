@@ -4,7 +4,14 @@
 
 已实现：独立任务副本、单 Agent 工具循环、公共验证与独立最终验收、简单督察、停止条件、Token 与费用估算、批次汇总及批次续跑。
 
-原生实验批次当前只接受 `single_agent` 配置。另有 OpenCode 2.0.32 的交互原型配置：协调者＋执行者、单 Agent 对照角色和本地密钥启动桥接；它尚未接入批次验收与费用账本。
+原生实验批次接受 `single_agent` 配置。OpenCode 2.0.32 后端支持固定用户工作流、主／子会话、统一费用准入与独立验收；交互启动入口继续保留。[工作流操作与配置](docs/workflow-experiments.md)。
+
+```powershell
+.\run-lab.cmd validate --experiment configs/workflow-single.json
+.\run-lab.cmd batch --experiment configs/workflow-single.json --output artifacts/workflow-deepseek-01
+```
+
+此配置实际运行 DeepSeek 在一道现有调参题上的四轮会话，每轮可能包含多次模型调用，整段预算 $0.20。修改轮次消息用 `configs/workflows/daily-review.json`；修改题目、架构和预算用 `configs/workflow-single.json`；模型参数继续放在模型目录中。`--output` 使用新目录；未知用量或中断不会自动重试。
 
 [实验决策与计划变更记录](docs/experiment-decisions.md) 只记录整体实验计划、方法或架构方向的实质变化，例如引入调参集与保留评估集。日常调参、常规修复和补充同类任务不单独新增记录，参数与结果由运行快照和报告保存。
 
