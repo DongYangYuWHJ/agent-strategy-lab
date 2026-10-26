@@ -54,6 +54,35 @@ class ScriptedSession:
         pass
 
 
+class PlannerWorkerSession:
+    """Exercise role gates and one shared ledger, without claiming real delegation."""
+    def __init__(self, url, password, workspace, directory, models, strategy, gateway):
+        self.gateway, self.models = gateway, models
+
+    def run_turn(self, text, turn_dir):
+        g = self.gateway
+        def generate(model):
+            g.generation(model.id, "chat/completions", {"model": model.model, "messages": [{"role": "user", "content": text}]})
+        generate(self.models[0])
+        if g.turn == "implement":
+            # Planner is still blocked when the current turn allows the worker to edit.
+            denied = g.mcp("planner", {"id": 1, "method": "tools/call", "params": {
+                "name": "write_file", "arguments": {"path": "bounds.py", "content": "bad"}}})
+            if not denied["isError"]:
+                raise AssertionError("Planner unexpectedly obtained edit permission")
+            generate(self.models[1])
+            task = Task.load(ROOT / "tickets/clamp-boundaries/task.json")
+            action = next(a for batch in read_json(task.manifest_path.parent / "replay.json")
+                          for a in batch if a["name"] == "write_file")
+            result = g.mcp("worker", {"id": 2, "method": "tools/call", "params": action})
+            if result["isError"]:
+                raise AssertionError(result)
+        save_json(turn_dir / "messages.json", {"fixture": True})
+
+    def close(self):
+        pass
+
+
 class WorkflowTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -156,6 +185,31 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("api.deepseek.com", str(config))
         self.assertFalse(config["compaction"]["auto"])
 
+    def test_planner_worker_permissions_and_shared_budget(self):
+        worker = replace(self.model, id="worker", pricing=Pricing("0.1", "0.5"))
+        def response(client, payload, timeout):
+            return b"fixture", {"id": "fixture", "model": client.model.model,
+                "usage": {"prompt_tokens": 100, "completion_tokens": 30}, "choices": [{"finish_reason": "stop"}]}
+        with patch("agent_lab.providers.require_credential", return_value="fixture"), \
+             patch("agent_lab.workflow_gateway.forward_stream", side_effect=response), \
+             patch("agent_lab.opencode_workflow.isolated_server", fake_server):
+            result = run_workflow(self.task, [self.model, worker], Limits(), self.root / "roles", self.workflow,
+                                  "planner_worker", session_factory=PlannerWorkerSession)
+            limited = run_workflow(self.task, [self.model, worker], Limits(max_calls=2), self.root / "limited", self.workflow,
+                                   "planner_worker", session_factory=PlannerWorkerSession)
+        self.assertTrue(result["accepted"])
+        self.assertEqual(result["accounting"]["calls"], 5)
+        self.assertEqual(result["accounting"]["estimated_cost_usd"], "0.000665")
+        self.assertEqual(limited["stop_reason"], "call_limit")
+        self.assertEqual(limited["accounting"]["calls"], 2)
+        self.assertEqual(limited["turns_completed"], 1)
+        config = read_json(Path(result["artifact_dir"]) / "config.json")
+        generated = read_json(Path(result["artifact_dir"]) / "opencode-config.json")
+        self.assertEqual(config["role_prompts"]["planner"], generated["agents"]["lab-planner"]["system"])
+        self.assertEqual(config["role_prompts"]["worker"], generated["agents"]["lab-worker"]["system"])
+        self.assertEqual(generated["agents"]["lab-planner"]["model"], "lab-test-deep/test-deep")
+        self.assertEqual(generated["agents"]["lab-worker"]["model"], "lab-worker/worker")
+
     def test_native_and_workflow_reports_are_separate(self):
         result = self.run_fixture()
         native = {**result, "backend": "native", "workflow_id": ""}
@@ -185,6 +239,11 @@ class WorkflowTests(unittest.TestCase):
             result = run_workflow_batch(path, {self.model.id: self.model}, self.root / "batch")
         self.assertEqual(result["status"], "usage_unknown")
         self.assertEqual(runner.call_count, 1)
+        self.assertIn("role_prompts", result["configuration"])
+        with patch("agent_lab.providers.require_credential", return_value="fixture"), \
+             patch("agent_lab.workflow_experiments.workflow_role_prompts", return_value={"solo": "changed instructions"}):
+            with self.assertRaisesRegex(ValueError, "configuration changed"):
+                run_workflow_batch(path, {self.model.id: self.model}, self.root / "batch", resume=True)
 
 
 if __name__ == "__main__":

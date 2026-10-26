@@ -31,7 +31,7 @@
 
 ## OpenCode 和资源控制
 
-固定版本 2.0.32。实验目录生成专用配置，默认拒绝原生文件、shell 和外部工具，通过本机 MCP 暴露文件白名单工具、公开检查和澄清。控制文件不进入任务工具可读范围，原始题目不被覆盖。目录隔离不是 OS 沙箱。
+固定版本 2.0.32。实验目录生成专用配置，通过本机 MCP 暴露文件白名单工具、公开检查和澄清。2026-10-26 核查实际注册权限发现，旧交互角色的原生 edit allow 会被继承，某个执行者实际使用了原生 patch；此前“原生文件工具默认全部拒绝”的说明不准确，权限收紧待处理。MCP 写入守卫仍生效，但不能据此声称原生编辑也受同样限制。原始题目未被覆盖，目录隔离也不是 OS 沙箱。
 
 OpenCode 通过本机网关使用 DeepSeek Chat Completions、OpenAI Responses、Claude Messages 原生协议。密钥只由父进程持有。网关逐次做 Token／费用／时间／调用额度准入，执行目录中的输出与推理配置，记录流式响应和真实 usage。输出先缓存在网关，计量完成且未截断后才交给 OpenCode 执行工具。
 
@@ -50,7 +50,15 @@ OpenCode 通过本机网关使用 DeepSeek Chat Completions、OpenAI Responses�
 ]
 ```
 
-此例只说明语法；加入数组会增加实际运行，不是当前配置默认内容。planner_worker 的第一个模型为对外规划者，第二个为执行者。消息只发给规划者；它可读代码、核对公开检查和委派，不能直接写代码。执行者可修改白名单文件，不能继续委派。规划轮写入限制对所有角色生效。
+此例只说明语法；加入数组会增加实际运行，不是当前配置默认内容。planner_worker 的第一个模型为对外规划者，第二个为执行者。消息只发给规划者；它可读代码、核对公开检查和委派，不能直接写代码。执行者可修改白名单文件，不能继续委派。规划轮的 MCP 写入限制对所有角色生效；原生编辑存在上文所述权限继承例外。
+
+Sol Planner＋DeepSeek Executor 及两组单模型对照的专用入口为 `configs/workflow-planner-executor.json`，配合 `--catalog configs/models-workflow-comparison.json`。配置检查：
+
+```powershell
+.\run-lab.cmd validate --experiment configs/workflow-planner-executor.json --catalog configs/models-workflow-comparison.json
+```
+
+角色指令在 `roles/workflow-planner.md` 与 `roles/workflow-executor.md`。程序把其完整内容冻结到批次和运行快照，修改后拒绝续跑旧批次；每例 $0.50，每批三例 $1.50。后续配置 `configs/workflow-planner-executor-variants.json` 增加了 DeepSeek→Sol、DeepSeek→DeepSeek、Sol→Sol，各一次；连同原 Sol→DeepSeek，四种搭配三种通过、一种请求澄清暂停。全部数据与权限继承问题见 [011](decisions/011-planner-executor.md)。中等／困难任务仍待测试。
 
 ## 记录与验证
 

@@ -6,7 +6,7 @@ import random
 from .domain import Limits, Task, digest, money, now, read_json, safe_id, save_json
 from .experiments import discover_task_paths
 from .opencode_bridge import SUPPORTED_VERSION
-from .opencode_workflow import run_workflow
+from .opencode_workflow import run_workflow, workflow_role_prompts
 from .providers import make_provider
 from .reporting import collect_results, write_report
 from .runner import task_fingerprint
@@ -59,6 +59,7 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
                 "token_counting": counters,
                 "task_fingerprints": {t.id: task_fingerprint(t) for t in tasks},
                 "architectures": [{**a, "catalog": [asdict(m) for m in models]} for a, models in architectures],
+                "role_prompts": {a["id"]: workflow_role_prompts(a["strategy"]) for a, _ in architectures},
                 "limits": asdict(limits), "seed": seed, "plan": plan, "batch_budget_usd": str(budget)}
     output = output.resolve()
     if resume:
@@ -96,10 +97,13 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
             if task_fingerprint(task) != identity["task_fingerprints"][task.id]:
                 raise ValueError("Task changed during workflow batch")
             arch, models = arch_map[cell["architecture"]]
+            if workflow_role_prompts(arch["strategy"]) != identity["role_prompts"][arch["id"]]:
+                raise ValueError("Role instructions changed during workflow batch")
             effective = replace(limits, max_cost_usd=str(min(money(limits.max_cost_usd), budget - spent)))
             manifest["inflight"] = {cell["cell"]: cell}
             save_json(output / "batch.json", manifest)
-            result = run_workflow(task, models, effective, output / "runs", workflow, arch["strategy"])
+            result = run_workflow(task, models, effective, output / "runs", workflow, arch["strategy"],
+                                  role_prompts=identity["role_prompts"][arch["id"]])
             manifest["completed"][cell["cell"]] = result["run_id"]
             manifest["inflight"] = {}
             save_json(output / "batch.json", manifest)

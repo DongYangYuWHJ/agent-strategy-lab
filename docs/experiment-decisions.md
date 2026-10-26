@@ -28,6 +28,7 @@
 | [008](decisions/008-continuation-and-limit-fix.md) | 提高输出额度，修复截断与 Luna 续接限制 | 已实现并验证；含两模型线上验证补记 | 分开传输与 Token 预算，按协议识别未完成响应 |
 | [009](decisions/009-single-agent-summary-and-parameter-failures.md) | 五模型单 Agent 汇总与参数导致的停止 | 已核对 60 项原始结果；未调参、未重跑 | 区分真实用量与保守预留，分开额度停止与答案错误 |
 | [010](decisions/010-conversation-workflow-evaluation.md) | 通用 prompt 工作流（简记，目的见 009） | 五模型单 Agent 线上验证通过；协作待验证 | 相同交互下比较架构，整段计量，最终独立验收 |
+| [011](decisions/011-planner-executor.md) | Planner＋Executor 四种搭配，与单 Agent 对照 | 三组合通过、一组合澄清暂停；发现权限继承待处理 | 固定交互与总预算，核查交接、工具能力及实际权限 |
 
 ## 调参集为什么借鉴机器学习
 

@@ -106,7 +106,18 @@ def model_ref(model):
     return {"providerID": "lab-" + model.id, "id": model.id}
 
 
-def opencode_config(models, gateway_url, limits, strategy):
+def workflow_role_prompts(strategy):
+    if strategy == "single_agent":
+        return {"solo": SYSTEM + "\nDo not delegate."}
+    if strategy != "planner_worker":
+        raise ValueError("Unsupported workflow strategy")
+    root = Path(__file__).resolve().parents[2] / "roles"
+    return {role: SYSTEM + "\n" + (root / name).read_text(encoding="utf-8")
+            for role, name in (("planner", "workflow-planner.md"), ("worker", "workflow-executor.md"))}
+
+
+def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
+    role_prompts = workflow_role_prompts(strategy) if role_prompts is None else role_prompts
     providers = {}
     packages = {"deepseek": "openai-compatible", "openai": "openai/responses", "anthropic": "anthropic"}
     for model in models:
@@ -127,8 +138,7 @@ def opencode_config(models, gateway_url, limits, strategy):
         if role == "planner":
             permissions.append({"action": "subagent", "resource": "lab-worker", "effect": "allow"})
         return {"description": "Bounded workflow " + role, "mode": mode, "model": "lab-" + model.id + "/" + model.id,
-                "system": SYSTEM + ("\nCoordinate lab-worker. Do not edit files yourself. Pass all relevant requirements and current turn constraints."
-                                    if role == "planner" else "\nDo not delegate."),
+                "system": role_prompts[role],
                 "steps": limits.max_calls, "permissions": permissions}
     agents = ({main: agent("solo", models[0], "primary")} if strategy == "single_agent" else
               {main: agent("planner", models[0], "primary"), "lab-worker": agent("worker", models[1], "subagent")})
@@ -227,11 +237,12 @@ def completed_turn(messages, admitted):
     return any(m.get("type") == "assistant" and m.get("time", {}).get("completed") for m in rows)
 
 
-def run_workflow(task, models, limits, output, workflow, strategy="single_agent", session_factory=OpenCodeSession):
+def run_workflow(task, models, limits, output, workflow, strategy="single_agent", session_factory=OpenCodeSession, role_prompts=None):
     if strategy not in {"single_agent", "planner_worker"} or len(models) != (1 if strategy == "single_agent" else 2):
         raise ValueError("Workflow architecture needs one solo model or planner and worker models")
     if any(m.provider == "mock" for m in models):
         raise ValueError("OpenCode workflows require real provider configurations")
+    role_prompts = workflow_role_prompts(strategy) if role_prompts is None else role_prompts
     directory = output.resolve() / (task.id + "-" + "--".join(m.id for m in models) + "-" + uuid.uuid4().hex[:12])
     directory.mkdir(parents=True, exist_ok=False)
     recorder = Recorder(directory)
@@ -245,7 +256,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
         "task": task.public_contract(), "task_fingerprint": task_fingerprint(task),
         "model": asdict(models[0]), "models": [asdict(m) for m in models],
         "limits": asdict(limits), "strategy": {"name": strategy, "version": 1}, "workflow": asdict(workflow),
-        "system_prompt": SYSTEM, "execution_kind": "live",
+        "system_prompt": SYSTEM, "role_prompts": role_prompts, "execution_kind": "live",
         "token_counting": {m.id: gateway.clients[m.id].token_counting_info() for m in models}}
     save_json(directory / "config.json", configuration)
     save_json(directory / "task.json", task.public_contract())
@@ -258,7 +269,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
         recorder.event("phase", phase=phase, turn=gateway.turn)
     try:
         with serve_gateway(gateway) as gateway_url:
-            config = opencode_config(models, gateway_url, limits, strategy)
+            config = opencode_config(models, gateway_url, limits, strategy, role_prompts)
             config_path = workspace.root / "opencode.jsonc"
             if config_path.exists():
                 raise ValueError("Task source must not contain the reserved opencode.jsonc control file")

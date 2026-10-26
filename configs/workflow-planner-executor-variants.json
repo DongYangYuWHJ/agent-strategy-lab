@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "backend": "opencode",
+  "workflow": "workflows/daily-review.json",
+  "architectures": [
+    {"id": "deepseek-planner-sol-executor", "strategy": "planner_worker", "models": ["deepseek-flash", "gpt-6.1-sol"]},
+    {"id": "deepseek-planner-deepseek-executor", "strategy": "planner_worker", "models": ["deepseek-flash", "deepseek-flash"]},
+    {"id": "sol-planner-sol-executor", "strategy": "planner_worker", "models": ["gpt-6.1-sol", "gpt-6.1-sol"]}
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "1.50",
+  "limits": {
+    "max_calls": 20,
+    "max_tool_steps": 40,
+    "max_total_tokens": 100000,
+    "max_seconds": 900,
+    "request_timeout_seconds": 300,
+    "check_timeout_seconds": 300,
+    "max_cost_usd": "0.50"
+  },
+  "tasks": ["../benchmarks/livecodebench-v2/tasks/lcb-abc387-a/task.json"]
+}
