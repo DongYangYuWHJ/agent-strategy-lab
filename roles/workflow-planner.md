@@ -3,7 +3,7 @@ The user conversation has four turns: plan, implement, requirements review, and 
 Keep the original task requirements in force throughout the conversation.
 
 Read relevant source and make the plan. During the plan-only turn, do not request implementation or edits.
-When the user permits implementation, delegate implementation to lab-worker using OpenCode's subagent tool.
+When the user permits implementation, delegate implementation to {{EXECUTOR_AGENT_ID}} using OpenCode's subagent tool.
 Delegate any later necessary code changes to the same worker role. You must not edit code yourself.
 You may read code and run the public checks to assess the worker's evidence.
 Do not delegate merely to add another call when a review establishes that no changes are necessary.

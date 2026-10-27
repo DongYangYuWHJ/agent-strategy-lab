@@ -3,25 +3,33 @@
 Not discovered by the normal suite; no external generation is performed.
 """
 from pathlib import Path
+import argparse
 import json
 import sys
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from agent_lab.domain import Limits, Task, load_models, save_json
-from agent_lab.opencode_workflow import run_workflow
+from agent_lab.domain import Limits, Task, load_models, save_json, digest
+from agent_lab.opencode_workflow import run_workflow, opencode_config
+from agent_lab.opencode_permissions import ROLE_AGENT_IDS
 from agent_lab.reporting import write_report
 from agent_lab.workflows import Workflow
 
 
-output = Path(sys.argv[1]).resolve()
+parser = argparse.ArgumentParser()
+parser.add_argument("output", type=Path)
+parser.add_argument("--strategy", choices=("single_agent", "planner_worker"), default="single_agent")
+parser.add_argument("--inject-edit-grant", action="store_true")
+args = parser.parse_args()
+output = args.output.resolve()
 if output.exists():
     raise SystemExit("Use a new output directory")
 model = load_models(ROOT / "configs/models.json")["deepseek-flash"]
 task = Task.load(ROOT / "benchmarks/livecodebench-v2/tasks/lcb-abc387-a/task.json")
 workflow = Workflow.load(ROOT / "configs/workflows/daily-review.json")
 call_index = 0
+observed_tools = {}
 
 
 def fake_upstream(provider, payload, timeout):
@@ -29,20 +37,34 @@ def fake_upstream(provider, payload, timeout):
     call_index += 1
     all_text = json.dumps(payload["messages"], ensure_ascii=False)
     tools = payload.get("tools", [])
-    function = next((t["function"]["name"] for t in tools if t["function"]["name"].endswith("write_file")), None)
+    names = {t["function"]["name"] for t in tools}
+    role = "planner" if any(n.startswith("lab_planner_") for n in names) else "worker" if any(n.startswith("lab_worker_") for n in names) else "solo"
+    observed_tools[role] = sorted(names)
+    assert not names.intersection({"patch", "write", "edit", "read", "glob", "grep", "shell", "execute", "question"}), "Native tool leaked"
+    assert not any(n.startswith("lab_") and not n.startswith("lab_" + role + "_") for n in names), "Cross-role tool leaked"
+    function = next((n for n in names if n.endswith("write_file")), None)
     written = any(m.get("role") == "tool" and '"bytes"' in str(m.get("content", "")) for m in payload["messages"])
-    should_write = "核实后按你认为合适的方案实施" in all_text and function and not written
-    message = {"role": "assistant", "content": None if should_write else "已核对当前轮要求。"}
+    should_write = (role == "worker" or "核实后按你认为合适的方案实施" in all_text) and function and not written
+    delegated = any(m.get("role") == "tool" and "<subagent " in str(m.get("content", "")) for m in payload["messages"])
+    should_delegate = role == "planner" and "核实后按你认为合适的方案实施" in all_text and not delegated
+    action = None
+    if should_delegate:
+        assert "subagent" in names
+        action = {"name": "subagent", "arguments": {"agent": ROLE_AGENT_IDS["worker"], "description": "Protocol fixture implementation",
+            "prompt": "Implement solution.py: read two integers A B, print (A+B)**2. Current turn permits edits, solution.py is the only editable file. Return actual evidence. No further delegation."}}
+    elif should_write:
+        action = {"name": function, "arguments": {"path": "solution.py", "content": "import sys\na,b=map(int,sys.stdin.read().split())\nprint((a+b)**2)\n"}}
+    message = {"role": "assistant", "content": None if action else "已核对当前轮要求。"}
     message["reasoning_content"] = "Fixture reasoning retained across tool calls."
-    if should_write:
-        message["tool_calls"] = [{"id": "call-write", "type": "function", "function": {"name": function,
-            "arguments": json.dumps({"path": "solution.py", "content": "import sys\na,b=map(int,sys.stdin.read().split())\nprint((a+b)**2)\n"})}}]
+    if action:
+        message["tool_calls"] = [{"id": f"call-{call_index}", "type": "function", "function": {
+            "name": action["name"], "arguments": json.dumps(action["arguments"])}}]
     usage = {"prompt_tokens": provider.count_input_tokens(payload, 10), "completion_tokens": 50}
     raw = {"id": f"fixture-{call_index}", "model": model.model, "usage": usage,
-           "choices": [{"finish_reason": "tool_calls" if should_write else "stop", "message": message}],
-           "_lab_tool_calls": int(should_write)}
+           "choices": [{"finish_reason": "tool_calls" if action else "stop", "message": message}],
+           "_lab_tool_calls": int(bool(action))}
     delta = dict(message)
-    if should_write:
+    if action:
         delta["tool_calls"] = [{"index": i, **c} for i, c in enumerate(delta["tool_calls"])]
     chunks = [
         {"id": raw["id"], "object": "chat.completion.chunk", "created": 1, "model": model.model,
@@ -53,16 +75,43 @@ def fake_upstream(provider, payload, timeout):
     return body, raw
 
 
+def generated_config(*values, **kwargs):
+    config = opencode_config(*values, **kwargs)
+    if args.inject_edit_grant:
+        target = ROLE_AGENT_IDS["worker"] if args.strategy == "planner_worker" else ROLE_AGENT_IDS["solo"]
+        config["agents"][target]["permissions"].append({"action": "edit", "resource": "*", "effect": "allow"})
+    return config
+
+
+legacy_hash = digest((ROOT / "opencode.jsonc").read_text(encoding="utf-8"))
 with patch("agent_lab.providers.require_credential", return_value="protocol-fixture"), \
-     patch("agent_lab.workflow_gateway.forward_stream", side_effect=fake_upstream):
-    result = run_workflow(task, [model], Limits(max_calls=20, max_tool_steps=40, max_seconds=180, check_timeout_seconds=30), output, workflow)
+     patch("agent_lab.workflow_gateway.forward_stream", side_effect=fake_upstream), \
+     patch("agent_lab.opencode_workflow.opencode_config", side_effect=generated_config):
+    models = [model] if args.strategy == "single_agent" else [model, model]
+    result = run_workflow(task, models, Limits(max_calls=20, max_tool_steps=40, max_seconds=180, check_timeout_seconds=30), output, workflow, args.strategy)
 result["execution_kind"] = "simulated"
 directory = Path(result["artifact_dir"])
-save_json(directory / "result.json", result)
 config = json.loads((directory / "config.json").read_text(encoding="utf-8"))
 config["execution_kind"] = "simulated"
 config["protocol_fixture"] = True
 save_json(directory / "config.json", config)
+result["config_fingerprint"] = digest(config)
+save_json(directory / "result.json", result)
+assert digest((ROOT / "opencode.jsonc").read_text(encoding="utf-8")) == legacy_hash
+registered = json.loads((directory / "registered-agents.json").read_text(encoding="utf-8"))
+legacy = next((a for a in registered if a.get("id") == "lab-worker"), None)
+assert legacy and any(p.get("action") == "edit" and p.get("effect") == "allow" for p in legacy.get("permissions", [])), "Legacy config was not loaded"
+save_json(directory / "fixture-assertions.json", {"legacy_config_present": True, "legacy_config_unchanged": True,
+          "observed_tools_by_role": observed_tools, "fixture_generation_requests": call_index,
+          "injected_edit_grant": args.inject_edit_grant})
 write_report(output)
 print(json.dumps({k: result[k] for k in ["status", "stop_reason", "turns_completed", "turns_expected", "artifact_dir"]}))
-raise SystemExit(0 if result["accepted"] and result["turns_completed"] == 4 else 1)
+if args.inject_edit_grant:
+    passed = result["stop_reason"] == "permission_configuration_error" and call_index == 0 and result["accounting"]["calls"] == 0
+else:
+    passed = result["accepted"] and result["turns_completed"] == 4
+    if passed and args.strategy == "planner_worker":
+        children = json.loads((directory / "child-sessions.json").read_text(encoding="utf-8"))["data"]
+        assert children and all(c["agent"] == ROLE_AGENT_IDS["worker"] for c in children)
+        assert set(observed_tools) == {"planner", "worker"}
+raise SystemExit(0 if passed else 1)

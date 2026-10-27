@@ -18,6 +18,9 @@ from .accounting import StopRun
 from .domain import digest, now, save_json
 from .evaluation import Checks
 from .opencode_bridge import executable, environment, SUPPORTED_VERSION
+from .opencode_permissions import (PermissionConfigurationError, PERMISSION_POLICY_VERSION,
+                                   ROLE_AGENT_IDS, role_ids, role_permissions,
+                                   audit_registered_agents, permission_probes)
 from .runner import task_fingerprint
 from .telemetry import Recorder
 from .workflow_gateway import Gateway, serve_gateway
@@ -113,6 +116,8 @@ def workflow_role_prompts(strategy):
         raise ValueError("Unsupported workflow strategy")
     root = Path(__file__).resolve().parents[2] / "roles"
     return {role: SYSTEM + "\n" + (root / name).read_text(encoding="utf-8")
+                    .replace("{{EXECUTOR_AGENT_ID}}", ROLE_AGENT_IDS["worker"])
+                    .replace("{{PLANNER_AGENT_ID}}", ROLE_AGENT_IDS["planner"])
             for role, name in (("planner", "workflow-planner.md"), ("worker", "workflow-executor.md"))}
 
 
@@ -132,16 +137,15 @@ def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
             "settings": {"apiKey": "local-gateway", "baseURL": gateway_url + "/provider/" + model.id,
                          "timeout": (limits.request_timeout_seconds + 10) * 1000, "encoding": "none"},
             "models": {model.id: entry}}
-    main = "lab-solo" if strategy == "single_agent" else "lab-planner"
+    ids = role_ids(strategy)
+    main = ids["solo"] if strategy == "single_agent" else ids["planner"]
     def agent(role, model, mode):
-        permissions = [{"action": "lab_" + role + "_*", "resource": "*", "effect": "allow"}]
-        if role == "planner":
-            permissions.append({"action": "subagent", "resource": "lab-worker", "effect": "allow"})
+        permissions = role_permissions(role)
         return {"description": "Bounded workflow " + role, "mode": mode, "model": "lab-" + model.id + "/" + model.id,
                 "system": role_prompts[role],
                 "steps": limits.max_calls, "permissions": permissions}
     agents = ({main: agent("solo", models[0], "primary")} if strategy == "single_agent" else
-              {main: agent("planner", models[0], "primary"), "lab-worker": agent("worker", models[1], "subagent")})
+              {main: agent("planner", models[0], "primary"), ids["worker"]: agent("worker", models[1], "subagent")})
     roles = ["solo"] if strategy == "single_agent" else ["planner", "worker"]
     return {"model": "lab-" + models[0].id + "/" + models[0].id, "default_agent": main,
             "snapshots": False, "compaction": {"auto": False},
@@ -159,24 +163,55 @@ class OpenCodeSession:
     def __init__(self, url, password, workspace, directory, models, strategy, gateway):
         self.url, self.password, self.workspace = url, password, workspace
         self.directory, self.gateway = directory, gateway
-        self.main = "lab-solo" if strategy == "single_agent" else "lab-planner"
+        ids = role_ids(strategy)
+        self.main = ids["solo"] if strategy == "single_agent" else ids["planner"]
         query = urllib.parse.urlencode({"location.directory": str(workspace.root)})
         deadline = time.monotonic() + 15
         while True:
             agents = request(url, "/api/agent?" + query, password)["data"]
-            actual = next((a for a in agents if a.get("id") == self.main), None)
-            if actual and actual.get("model") == model_ref(models[0]):
+            if all(any(a.get("id") == name for a in agents) for name in ids.values()):
                 break
             if time.monotonic() >= deadline:
                 save_json(directory / "registered-agents.json", agents)
-                raise ValueError("Workflow role configuration did not load")
+                save_json(directory / "permission-audit.json", {"passed": False,
+                          "policy": PERMISSION_POLICY_VERSION, "error": "Experiment roles did not load"})
+                raise PermissionConfigurationError("Workflow role configuration did not load")
             time.sleep(0.15)
         save_json(directory / "registered-agents.json", agents)
+        audit = {"schema_version": 1, "policy": PERMISSION_POLICY_VERSION, "passed": False, "probes": []}
+        save_json(directory / "permission-audit.json", audit)
+        try:
+            expected = json.loads((directory / "opencode-config.json").read_text(encoding="utf-8"))
+            audit["registered_roles"] = audit_registered_agents(agents, {"roles": ids, "agents": expected["agents"]})
+        except PermissionConfigurationError as exc:
+            audit["error"] = str(exc)
+            save_json(directory / "permission-audit.json", audit)
+            raise
         result = request(url, "/api/session", password,
                          {"title": "Agent Lab workflow", "agent": self.main, "model": model_ref(models[0]),
                           "location": {"directory": str(workspace.root)}})
         self.id = result["data"]["id"]
         save_json(directory / "session.json", result)
+        try:
+            for role, name in ids.items():
+                for probe in permission_probes(role):
+                    reply = self.call("/permission", {"agent": name, "action": probe["action"], "resources": probe["resources"]})
+                    effect = (reply or {}).get("data", {}).get("effect")
+                    audit["probes"].append({"agent": name, **probe, "observed": effect})
+                    save_json(directory / "permission-audit.json", audit)
+                    if effect != probe["expected"]:
+                        raise PermissionConfigurationError(f"Effective permission mismatch: {name}: {probe['action']}")
+            if gateway.ledger.calls:
+                raise PermissionConfigurationError("Generation occurred before permission audit completed")
+            audit["passed"] = True
+            save_json(directory / "permission-audit.json", audit)
+            gateway.recorder.event("permission_audit_passed", roles=ids, probes=len(audit["probes"]))
+        except Exception as exc:
+            audit["error"] = str(exc)[:1200]
+            save_json(directory / "permission-audit.json", audit)
+            if isinstance(exc, PermissionConfigurationError):
+                raise
+            raise PermissionConfigurationError("OpenCode effective permission audit could not complete") from exc
 
     def call(self, suffix, payload=None, method=None, timeout=10):
         return request(self.url, "/api/session/" + self.id + suffix, self.password, payload, method, timeout)
@@ -257,6 +292,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
         "model": asdict(models[0]), "models": [asdict(m) for m in models],
         "limits": asdict(limits), "strategy": {"name": strategy, "version": 1}, "workflow": asdict(workflow),
         "system_prompt": SYSTEM, "role_prompts": role_prompts, "execution_kind": "live",
+        "agent_ids": role_ids(strategy), "permission_policy": PERMISSION_POLICY_VERSION,
         "token_counting": {m.id: gateway.clients[m.id].token_counting_info() for m in models}}
     save_json(directory / "config.json", configuration)
     save_json(directory / "task.json", task.public_contract())
@@ -323,6 +359,9 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
                 finally:
                     gateway.closed = True
                     session.close()
+    except PermissionConfigurationError as exc:
+        status, reason = "error", "permission_configuration_error"
+        recorder.event("permission_audit_failed", message=str(exc))
     except StopRun as exc:
         status, reason = "stopped", exc.reason
     except KeyboardInterrupt:

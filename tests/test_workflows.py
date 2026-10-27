@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from agent_lab.accounting import StopRun
 from agent_lab.domain import Limits, Model, Pricing, Task, read_json, save_json
 from agent_lab.opencode_workflow import run_workflow, opencode_config, completed_turn
+from agent_lab.opencode_permissions import ROLE_AGENT_IDS
 from agent_lab.reporting import summarize
 from agent_lab.workflow_experiments import load_workflow_experiment, run_workflow_batch
 from agent_lab.workflow_gateway import Gateway, stream_result
@@ -64,6 +65,11 @@ class PlannerWorkerSession:
         def generate(model):
             g.generation(model.id, "chat/completions", {"model": model.model, "messages": [{"role": "user", "content": text}]})
         generate(self.models[0])
+        if g.turn == "plan":
+            denied = g.mcp("worker", {"id": 1, "method": "tools/call", "params": {
+                "name": "write_file", "arguments": {"path": "bounds.py", "content": "bad"}}})
+            if not denied["isError"]:
+                raise AssertionError("Worker unexpectedly obtained planning-phase edit permission")
         if g.turn == "implement":
             # Planner is still blocked when the current turn allows the worker to edit.
             denied = g.mcp("planner", {"id": 1, "method": "tools/call", "params": {
@@ -180,8 +186,8 @@ class WorkflowTests(unittest.TestCase):
         other = replace(self.model, id="test-other")
         config = opencode_config([self.model, other], "http://127.0.0.1:1/local", Limits(), "planner_worker")
         self.assertEqual(set(config["providers"]), {"lab-test-deep", "lab-test-other"})
-        self.assertEqual(config["default_agent"], "lab-planner")
-        self.assertNotIn("lab_worker_*", str(config["agents"]["lab-planner"]["permissions"]))
+        self.assertEqual(config["default_agent"], ROLE_AGENT_IDS["planner"])
+        self.assertNotIn("lab_worker_", str(config["agents"][ROLE_AGENT_IDS["planner"]]["permissions"]))
         self.assertNotIn("api.deepseek.com", str(config))
         self.assertFalse(config["compaction"]["auto"])
 
@@ -205,10 +211,10 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(limited["turns_completed"], 1)
         config = read_json(Path(result["artifact_dir"]) / "config.json")
         generated = read_json(Path(result["artifact_dir"]) / "opencode-config.json")
-        self.assertEqual(config["role_prompts"]["planner"], generated["agents"]["lab-planner"]["system"])
-        self.assertEqual(config["role_prompts"]["worker"], generated["agents"]["lab-worker"]["system"])
-        self.assertEqual(generated["agents"]["lab-planner"]["model"], "lab-test-deep/test-deep")
-        self.assertEqual(generated["agents"]["lab-worker"]["model"], "lab-worker/worker")
+        self.assertEqual(config["role_prompts"]["planner"], generated["agents"][ROLE_AGENT_IDS["planner"]]["system"])
+        self.assertEqual(config["role_prompts"]["worker"], generated["agents"][ROLE_AGENT_IDS["worker"]]["system"])
+        self.assertEqual(generated["agents"][ROLE_AGENT_IDS["planner"]]["model"], "lab-test-deep/test-deep")
+        self.assertEqual(generated["agents"][ROLE_AGENT_IDS["worker"]]["model"], "lab-worker/worker")
 
     def test_native_and_workflow_reports_are_separate(self):
         result = self.run_fixture()

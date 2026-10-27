@@ -7,6 +7,7 @@ from .domain import Limits, Task, digest, money, now, read_json, safe_id, save_j
 from .experiments import discover_task_paths
 from .opencode_bridge import SUPPORTED_VERSION
 from .opencode_workflow import run_workflow, workflow_role_prompts
+from .opencode_permissions import role_ids, PERMISSION_POLICY_VERSION
 from .providers import make_provider
 from .reporting import collect_results, write_report
 from .runner import task_fingerprint
@@ -60,6 +61,8 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
                 "task_fingerprints": {t.id: task_fingerprint(t) for t in tasks},
                 "architectures": [{**a, "catalog": [asdict(m) for m in models]} for a, models in architectures],
                 "role_prompts": {a["id"]: workflow_role_prompts(a["strategy"]) for a, _ in architectures},
+                "permission_policy": PERMISSION_POLICY_VERSION,
+                "agent_ids": {a["id"]: role_ids(a["strategy"]) for a, _ in architectures},
                 "limits": asdict(limits), "seed": seed, "plan": plan, "batch_budget_usd": str(budget)}
     output = output.resolve()
     if resume:

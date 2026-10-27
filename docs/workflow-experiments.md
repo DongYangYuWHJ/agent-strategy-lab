@@ -31,7 +31,9 @@
 
 ## OpenCode 和资源控制
 
-固定版本 2.0.32。实验目录生成专用配置，通过本机 MCP 暴露文件白名单工具、公开检查和澄清。2026-10-26 核查实际注册权限发现，旧交互角色的原生 edit allow 会被继承，某个执行者实际使用了原生 patch；此前“原生文件工具默认全部拒绝”的说明不准确，权限收紧待处理。MCP 写入守卫仍生效，但不能据此声称原生编辑也受同样限制。原始题目未被覆盖，目录隔离也不是 OS 沙箱。
+固定版本 2.0.32。实验目录生成专用配置，通过本机 MCP 暴露文件白名单工具、公开检查和澄清。实验使用独立角色名，每个角色先拒绝全部权限，再逐项允许自身 MCP 工具及必要委派；原生读写和 shell 等工具不开放。发送任务前，程序检查实际注册的角色、模型、指令和权限，并通过 OpenCode 权限接口核对实际判定；失败则以 `permission_configuration_error` 停止，不开始模型生成，证据写入 `permission-audit.json`。旧交互配置保持原样。
+
+此修复针对 2026-10-26 发现的旧角色原生 edit allow 继承问题；当时执行者曾使用原生 patch，历史结果未重跑，发现和本机正反检查见 [011](decisions/011-planner-executor.md)。MCP 按轮次和文件白名单限制写入，原始题目未被覆盖；这些工具权限控制不等于 OS 沙箱。
 
 OpenCode 通过本机网关使用 DeepSeek Chat Completions、OpenAI Responses、Claude Messages 原生协议。密钥只由父进程持有。网关逐次做 Token／费用／时间／调用额度准入，执行目录中的输出与推理配置，记录流式响应和真实 usage。输出先缓存在网关，计量完成且未截断后才交给 OpenCode 执行工具。
 
@@ -50,7 +52,7 @@ OpenCode 通过本机网关使用 DeepSeek Chat Completions、OpenAI Responses�
 ]
 ```
 
-此例只说明语法；加入数组会增加实际运行，不是当前配置默认内容。planner_worker 的第一个模型为对外规划者，第二个为执行者。消息只发给规划者；它可读代码、核对公开检查和委派，不能直接写代码。执行者可修改白名单文件，不能继续委派。规划轮的 MCP 写入限制对所有角色生效；原生编辑存在上文所述权限继承例外。
+此例只说明语法；加入数组会增加实际运行，不是当前配置默认内容。planner_worker 的第一个模型为对外规划者，第二个为执行者。消息只发给规划者；它可读代码、核对公开检查和委派，不能直接写代码。执行者可修改白名单文件，不能继续委派。规划轮的 MCP 写入限制对所有角色生效。对应角色名为 `lab-experiment-planner` 和 `lab-experiment-executor`；单 Agent 使用 `lab-experiment-solo`。
 
 Sol Planner＋DeepSeek Executor 及两组单模型对照的专用入口为 `configs/workflow-planner-executor.json`，配合 `--catalog configs/models-workflow-comparison.json`。配置检查：
 
@@ -68,7 +70,7 @@ Sol Planner＋DeepSeek Executor 及两组单模型对照的专用入口为 `conf
 
 本地测试覆盖顺序、写入权限、跨轮预算、失败关闭、验收时机和报告分组。`tests/opencode_protocol_check.py` 是本机 OpenCode 协议检查，使用固定回复，不消耗供应商生成额度，结果标记 simulated。线上效果以真实报告为准。
 
-接口依据：[API](https://opencode.ai/v2/docs/api)、[供应商配置](https://opencode.ai/v2/docs/providers)、[MCP](https://opencode.ai/v2/docs/mcp-servers)。现已完成三家供应商的五种单 Agent 模型线上检查，见文末；双角色真实效果仍需确认。
+接口依据：[API](https://opencode.ai/v2/docs/api)、[权限](https://opencode.ai/v2/docs/permissions)、[供应商配置](https://opencode.ai/v2/docs/providers)、[MCP](https://opencode.ai/v2/docs/mcp-servers)。现已完成三家供应商的五种单 Agent 模型线上检查，见文末；四种双角色线上尝试及权限修复后一次 Sol→DeepSeek 线上检查见 011，其余组合尚未在修复后重跑。
 
 ## 首次线上检查：2026-10-24
 

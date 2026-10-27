@@ -23,6 +23,13 @@ CLARIFY = {"name": "request_clarification", "description": "Pause the experiment
                           "required": ["question"], "additionalProperties": False}}
 
 
+def role_tool_definitions(role):
+    if role not in {"solo", "planner", "worker"}:
+        raise ValueError("Unknown experiment role")
+    return [tool for tool in [*TOOLS, CLARIFY]
+            if tool["name"] != "submit" and (role != "planner" or tool["name"] != "write_file")]
+
+
 def stream_result(provider, events):
     """Extract the complete native response's accounting without rewriting SSE."""
     if provider == "deepseek":
@@ -206,7 +213,7 @@ class Gateway:
             return {}
         if method == "tools/list":
             return {"tools": [{"name": t["name"], "description": t["description"], "inputSchema": t["parameters"]}
-                              for t in [*TOOLS, CLARIFY] if t["name"] != "submit" and (role != "planner" or t["name"] != "write_file")]}
+                              for t in role_tool_definitions(role)]}
         if method != "tools/call":
             raise ValueError("Unsupported MCP method")
         with self.lock:
