@@ -43,6 +43,8 @@ OpenCode 通过本机网关使用 DeepSeek Chat Completions、OpenAI Responses�
 
 ## 架构配置
 
+新增 `planner_handoff`：第一轮 Planner 作为主 Agent 规划，完成后在同一会话切换 Agent 和模型，后三轮由 Executor 作为主 Agent 直接处理。该策略没有子会话或委派，也不会自动召回 Planner；详见 [配置与行为控制教程](agent-behavior-control.md) 和 [计划 012](decisions/012-planner-handoff-and-routing.md)。独立入口为 `configs/workflow-planner-handoff.json`，配合 `configs/models-workflow-comparison.json`；已完成本机固定回复检查，尚未付费运行。
+
 `architectures` 每项包含唯一 id、strategy 和有序 models 列表。例如：
 
 ```json

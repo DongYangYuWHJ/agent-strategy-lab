@@ -3,7 +3,7 @@
   "backend": "opencode",
   "workflow": "workflows/daily-review.json",
   "architectures": [
-    {"id": "sol-planner-deepseek-executor", "strategy": "planner_worker", "models": ["gpt-6.1-sol", "deepseek-flash"]}
+    {"id": "sol-planner-deepseek-executor", "strategy": "planner_worker", "models": ["gpt-6.1-sol", "deepseek-flash-executor-low"]}
   ],
   "repeats": 1,
   "seed": 42,
@@ -11,7 +11,7 @@
   "limits": {
     "max_calls": 20,
     "max_tool_steps": 40,
-    "max_total_tokens": 100000,
+    "max_total_tokens": 200000,
     "max_seconds": 900,
     "request_timeout_seconds": 300,
     "check_timeout_seconds": 300,

@@ -3,6 +3,7 @@
 Not discovered by the normal suite; no external generation is performed.
 """
 from pathlib import Path
+from dataclasses import replace
 import argparse
 import json
 import sys
@@ -19,7 +20,8 @@ from agent_lab.workflows import Workflow
 
 parser = argparse.ArgumentParser()
 parser.add_argument("output", type=Path)
-parser.add_argument("--strategy", choices=("single_agent", "planner_worker"), default="single_agent")
+parser.add_argument("--strategy", choices=("single_agent", "planner_worker", "planner_handoff"), default="single_agent")
+parser.add_argument("--distinct-model", action="store_true", help="Use a separate fixture model ID for the handoff Executor")
 parser.add_argument("--inject-edit-grant", action="store_true")
 args = parser.parse_args()
 output = args.output.resolve()
@@ -39,6 +41,10 @@ def fake_upstream(provider, payload, timeout):
     tools = payload.get("tools", [])
     names = {t["function"]["name"] for t in tools}
     role = "planner" if any(n.startswith("lab_planner_") for n in names) else "worker" if any(n.startswith("lab_worker_") for n in names) else "solo"
+    if args.strategy == "planner_handoff":
+        assert "subagent" not in names
+        if role == "worker":
+            assert "PLANNING_CONTEXT_FIXTURE" in all_text, "Planning history was lost during handoff"
     observed_tools[role] = sorted(names)
     assert not names.intersection({"patch", "write", "edit", "read", "glob", "grep", "shell", "execute", "question"}), "Native tool leaked"
     assert not any(n.startswith("lab_") and not n.startswith("lab_" + role + "_") for n in names), "Cross-role tool leaked"
@@ -54,7 +60,7 @@ def fake_upstream(provider, payload, timeout):
             "prompt": "Implement solution.py: read two integers A B, print (A+B)**2. Current turn permits edits, solution.py is the only editable file. Return actual evidence. No further delegation."}}
     elif should_write:
         action = {"name": function, "arguments": {"path": "solution.py", "content": "import sys\na,b=map(int,sys.stdin.read().split())\nprint((a+b)**2)\n"}}
-    message = {"role": "assistant", "content": None if action else "已核对当前轮要求。"}
+    message = {"role": "assistant", "content": None if action else "已核对当前轮要求。" + (" PLANNING_CONTEXT_FIXTURE" if role == "planner" else "")}
     message["reasoning_content"] = "Fixture reasoning retained across tool calls."
     if action:
         message["tool_calls"] = [{"id": f"call-{call_index}", "type": "function", "function": {
@@ -78,7 +84,7 @@ def fake_upstream(provider, payload, timeout):
 def generated_config(*values, **kwargs):
     config = opencode_config(*values, **kwargs)
     if args.inject_edit_grant:
-        target = ROLE_AGENT_IDS["worker"] if args.strategy == "planner_worker" else ROLE_AGENT_IDS["solo"]
+        target = ROLE_AGENT_IDS["solo"] if args.strategy == "single_agent" else ROLE_AGENT_IDS["worker"]
         config["agents"][target]["permissions"].append({"action": "edit", "resource": "*", "effect": "allow"})
     return config
 
@@ -88,6 +94,9 @@ with patch("agent_lab.providers.require_credential", return_value="protocol-fixt
      patch("agent_lab.workflow_gateway.forward_stream", side_effect=fake_upstream), \
      patch("agent_lab.opencode_workflow.opencode_config", side_effect=generated_config):
     models = [model] if args.strategy == "single_agent" else [model, model]
+    if args.distinct_model:
+        assert args.strategy == "planner_handoff"
+        models[1] = replace(model, id="fixture-executor")
     result = run_workflow(task, models, Limits(max_calls=20, max_tool_steps=40, max_seconds=180, check_timeout_seconds=30), output, workflow, args.strategy)
 result["execution_kind"] = "simulated"
 directory = Path(result["artifact_dir"])
@@ -113,5 +122,18 @@ else:
     if passed and args.strategy == "planner_worker":
         children = json.loads((directory / "child-sessions.json").read_text(encoding="utf-8"))["data"]
         assert children and all(c["agent"] == ROLE_AGENT_IDS["worker"] for c in children)
+        assert set(observed_tools) == {"planner", "worker"}
+    if passed and args.strategy == "planner_handoff":
+        children = json.loads((directory / "child-sessions.json").read_text(encoding="utf-8"))["data"]
+        assert not children, "Handoff must not create child sessions"
+        selections = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((directory / "turns").glob("*/selection.json"))]
+        assert len(selections) == 4 and all(s["passed"] for s in selections)
+        assert len({s["session_id"] for s in selections}) == 1
+        assert [s["role"] for s in selections] == ["planner", "worker", "worker", "worker"]
+        events = [json.loads(line) for line in (directory / "events.jsonl").read_text(encoding="utf-8").splitlines()]
+        generations = [e for e in events if e["type"] == "request_started"]
+        assert all(e["primary_role"] == ("planner" if e["turn"] == "plan" else "worker") for e in generations)
+        assert all(e["model_id"] == models[0 if e["turn"] == "plan" else 1].id for e in generations)
+        assert (directory / "turns/00-plan/workspace/solution.py").read_bytes() == (task.source_dir / "solution.py").read_bytes()
         assert set(observed_tools) == {"planner", "worker"}
 raise SystemExit(0 if passed else 1)

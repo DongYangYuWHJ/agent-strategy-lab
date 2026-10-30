@@ -28,7 +28,7 @@ def load_workflow_experiment(path, catalog, model_filter=None):
         if set(item) != {"id", "strategy", "models"}:
             raise ValueError("Architecture requires id, strategy, models")
         safe_id(item["id"])
-        expected = {"single_agent": 1, "planner_worker": 2}.get(item["strategy"])
+        expected = {"single_agent": 1, "planner_worker": 2, "planner_handoff": 2}.get(item["strategy"])
         if expected is None or len(item["models"]) != expected:
             raise ValueError("Invalid workflow architecture")
         models = [catalog[mid] for mid in item["models"]]

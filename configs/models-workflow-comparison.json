@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "notes": "Rechecked official standard USD/1M rates on 2026-10-24. DeepSeek retains conservative peak rates even off-peak. Reported usage times frozen prices is an estimate, not an invoice. Model and effort settings unchanged from the existing catalog.",
+  "notes": "Rechecked official standard USD/1M rates on 2026-10-24. DeepSeek retains conservative peak rates even off-peak. Reported usage times frozen prices is an estimate, not an invoice. On 2026-10-27 added DeepSeek role profiles: planner=max, executor=low (the lowest thinking-enabled effort, already used by the original profile). Other profiles and prices unchanged.",
   "models": [
     {
       "id": "gpt-6-luna",
@@ -20,6 +20,38 @@
     },
     {
       "id": "deepseek-flash",
+      "provider": "deepseek",
+      "token_counting": "model",
+      "model": "deepseek-flash",
+      "pricing": {
+        "input": "0.30",
+        "output": "1.20",
+        "cached_input": "0.006",
+        "cache_write": "0",
+        "verified_on": "2026-10-24",
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "max_output_tokens": 16384,
+      "reasoning_effort": "low"
+    },
+    {
+      "id": "deepseek-flash-planner-max",
+      "provider": "deepseek",
+      "token_counting": "model",
+      "model": "deepseek-flash",
+      "pricing": {
+        "input": "0.30",
+        "output": "1.20",
+        "cached_input": "0.006",
+        "cache_write": "0",
+        "verified_on": "2026-10-24",
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "max_output_tokens": 16384,
+      "reasoning_effort": "max"
+    },
+    {
+      "id": "deepseek-flash-executor-low",
       "provider": "deepseek",
       "token_counting": "model",
       "model": "deepseek-flash",

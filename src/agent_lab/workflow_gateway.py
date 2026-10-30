@@ -107,6 +107,8 @@ class Gateway:
         self.turn = None
         self.allow_write = False
         self.closed = True
+        self.active_role = None
+        self.active_model_id = None
         self.secret = secrets.token_urlsafe(24)
 
     def remaining(self):
@@ -125,6 +127,8 @@ class Gateway:
     def generation(self, model_id, path, payload):
         with self.lock:
             self.guard()
+            if self.active_model_id is not None and model_id != self.active_model_id:
+                raise StopRun("unexpected_model")
             if model_id not in self.clients:
                 raise StopRun("unexpected_model")
             provider = self.clients[model_id]
@@ -174,7 +178,7 @@ class Gateway:
             reservation = self.ledger.reserve(model, len(encoded), estimate)
             index = self.ledger.calls
             save_json(self.directory / "calls" / f"{index:03d}-request.json", payload)
-            self.recorder.event("request_started", call=index, model_id=model.id, turn=self.turn,
+            self.recorder.event("request_started", call=index, model_id=model.id, turn=self.turn, primary_role=self.active_role,
                                 request_bytes=len(encoded), estimated_input_tokens=estimate,
                                 estimated_reserve_usd=str(reservation))
             try:
@@ -188,7 +192,7 @@ class Gateway:
                 self.halted = "usage_unknown"
                 raise StopRun("usage_unknown") from None
             entry = self.ledger.record(model, usage, raw.get("id", ""), raw.get("model", model.model))
-            self.recorder.event("request_completed", **entry, turn=self.turn)
+            self.recorder.event("request_completed", **entry, turn=self.turn, primary_role=self.active_role)
             if count is not None:
                 self.recorder.event("input_count_comparison", call=index, counted_input_tokens=count,
                                     reported_input_tokens=usage.input_tokens, reserved_input_tokens=estimate)
@@ -218,6 +222,8 @@ class Gateway:
             raise ValueError("Unsupported MCP method")
         with self.lock:
             self.guard()
+            if self.active_role is not None and role != self.active_role:
+                raise StopRun("inactive_agent")
             params = message["params"]
             call = ToolCall(str(message.get("id", "")), params["name"], params.get("arguments", {}))
             if call.name == "request_clarification":

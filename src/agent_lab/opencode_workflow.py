@@ -1,5 +1,6 @@
 """OpenCode-backed, bounded multi-turn experiments using the shared task graders."""
 from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import asdict
 import base64
 import json
@@ -109,16 +110,25 @@ def model_ref(model):
     return {"providerID": "lab-" + model.id, "id": model.id}
 
 
+def model_matches(actual, model):
+    return (isinstance(actual, dict) and all(actual.get(k) == v for k, v in model_ref(model).items())
+            and actual.get("variant") in (None, "default"))
+
+
 def workflow_role_prompts(strategy):
     if strategy == "single_agent":
         return {"solo": SYSTEM + "\nDo not delegate."}
-    if strategy != "planner_worker":
+    if strategy not in {"planner_worker", "planner_handoff"}:
         raise ValueError("Unsupported workflow strategy")
     root = Path(__file__).resolve().parents[2] / "roles"
+    if strategy == "planner_handoff":
+        names = (("planner", "workflow-handoff-planner.md"), ("worker", "workflow-handoff-executor.md"))
+    else:
+        names = (("planner", "workflow-planner.md"), ("worker", "workflow-executor.md"))
     return {role: SYSTEM + "\n" + (root / name).read_text(encoding="utf-8")
                     .replace("{{EXECUTOR_AGENT_ID}}", ROLE_AGENT_IDS["worker"])
                     .replace("{{PLANNER_AGENT_ID}}", ROLE_AGENT_IDS["planner"])
-            for role, name in (("planner", "workflow-planner.md"), ("worker", "workflow-executor.md"))}
+            for role, name in names}
 
 
 def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
@@ -140,12 +150,13 @@ def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
     ids = role_ids(strategy)
     main = ids["solo"] if strategy == "single_agent" else ids["planner"]
     def agent(role, model, mode):
-        permissions = role_permissions(role)
+        permissions = role_permissions(role, strategy)
         return {"description": "Bounded workflow " + role, "mode": mode, "model": "lab-" + model.id + "/" + model.id,
                 "system": role_prompts[role],
                 "steps": limits.max_calls, "permissions": permissions}
+    executor_mode = "primary" if strategy == "planner_handoff" else "subagent"
     agents = ({main: agent("solo", models[0], "primary")} if strategy == "single_agent" else
-              {main: agent("planner", models[0], "primary"), ids["worker"]: agent("worker", models[1], "subagent")})
+              {main: agent("planner", models[0], "primary"), ids["worker"]: agent("worker", models[1], executor_mode)})
     roles = ["solo"] if strategy == "single_agent" else ["planner", "worker"]
     return {"model": "lab-" + models[0].id + "/" + models[0].id, "default_agent": main,
             "snapshots": False, "compaction": {"auto": False},
@@ -182,7 +193,7 @@ class OpenCodeSession:
         save_json(directory / "permission-audit.json", audit)
         try:
             expected = json.loads((directory / "opencode-config.json").read_text(encoding="utf-8"))
-            audit["registered_roles"] = audit_registered_agents(agents, {"roles": ids, "agents": expected["agents"]})
+            audit["registered_roles"] = audit_registered_agents(agents, {"roles": ids, "agents": expected["agents"], "strategy": strategy})
         except PermissionConfigurationError as exc:
             audit["error"] = str(exc)
             save_json(directory / "permission-audit.json", audit)
@@ -194,7 +205,7 @@ class OpenCodeSession:
         save_json(directory / "session.json", result)
         try:
             for role, name in ids.items():
-                for probe in permission_probes(role):
+                for probe in permission_probes(role, strategy):
                     reply = self.call("/permission", {"agent": name, "action": probe["action"], "resources": probe["resources"]})
                     effect = (reply or {}).get("data", {}).get("effect")
                     audit["probes"].append({"agent": name, **probe, "observed": effect})
@@ -215,6 +226,35 @@ class OpenCodeSession:
 
     def call(self, suffix, payload=None, method=None, timeout=10):
         return request(self.url, "/api/session/" + self.id + suffix, self.password, payload, method, timeout)
+
+    def select_primary(self, role, model, turn_dir):
+        """Switch an idle existing session, then read back its effective selection."""
+        target = ROLE_AGENT_IDS[role]
+        evidence = {"session_id": self.id, "role": role, "expected_agent": target,
+                    "expected_model": model_ref(model), "passed": False}
+        try:
+            active = request(self.url, "/api/session/active", self.password).get("data", {})
+            if self.id in active or self.call("/inbox").get("data", []):
+                raise ValueError("Cannot switch a busy session")
+            before = self.call("")["data"]
+            evidence["before"] = before
+            if before.get("agent") != target:
+                self.call("/agent", {"agent": target})
+            if not model_matches(before.get("model"), model):
+                self.call("/model", {"model": model_ref(model)})
+            after = self.call("")["data"]
+            evidence["after"] = after
+            if after.get("id") != self.id or after.get("agent") != target or not model_matches(after.get("model"), model):
+                raise ValueError("Session selection did not match the requested agent and model")
+            evidence["passed"] = True
+            self.main = target
+            self.gateway.recorder.event("primary_selected", session_id=self.id, role=role,
+                                        agent=target, model_id=model.id, turn=self.gateway.turn)
+        except Exception as exc:
+            evidence["error"] = str(exc)[:1000]
+            raise StopRun("agent_switch_error") from exc
+        finally:
+            save_json(turn_dir / "selection.json", evidence)
 
     def run_turn(self, text, turn_dir):
         before = self.gateway.ledger.calls
@@ -273,8 +313,10 @@ def completed_turn(messages, admitted):
 
 
 def run_workflow(task, models, limits, output, workflow, strategy="single_agent", session_factory=OpenCodeSession, role_prompts=None):
-    if strategy not in {"single_agent", "planner_worker"} or len(models) != (1 if strategy == "single_agent" else 2):
+    if strategy not in {"single_agent", "planner_worker", "planner_handoff"} or len(models) != (1 if strategy == "single_agent" else 2):
         raise ValueError("Workflow architecture needs one solo model or planner and worker models")
+    if strategy == "planner_handoff" and (len(workflow.turns) < 2 or workflow.turns[0].id != "plan" or workflow.turns[0].allow_write):
+        raise ValueError("Planner handoff requires a read-only first plan turn and later executor turns")
     if any(m.provider == "mock" for m in models):
         raise ValueError("OpenCode workflows require real provider configurations")
     role_prompts = workflow_role_prompts(strategy) if role_prompts is None else role_prompts
@@ -321,12 +363,23 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
                         gateway.remaining()
                         turn_dir = directory / "turns" / f"{index:02d}-{turn.id}"
                         turn_dir.mkdir(parents=True)
+                        if strategy == "planner_handoff":
+                            role = "planner" if index == 0 else "worker"
+                            model = models[0 if index == 0 else 1]
+                            # Selection is verified while the generation gate is closed.
+                            with gateway.lock:
+                                gateway.turn = turn.id
+                                gateway.active_role = role
+                                gateway.active_model_id = model.id
+                            session.select_primary(role, model, turn_dir)
                         text = (json.dumps(task.public_contract(), ensure_ascii=False) + "\n\n" if index == 0 else "") + turn.prompt
                         with gateway.lock:
                             gateway.turn, gateway.allow_write, gateway.closed = turn.id, turn.allow_write, False
                             before_calls = gateway.ledger.calls
                         item = {"index": index, "id": turn.id, "prompt": text, "allow_write": turn.allow_write,
                                 "started_at": now(), "status": "running"}
+                        if strategy == "planner_handoff":
+                            item.update(primary_role=role, agent_id=ROLE_AGENT_IDS[role], model_id=gateway.active_model_id)
                         turns.append(item)
                         save_json(turn_dir / "turn.json", item)
                         recorder.event("user_message", index=index, turn=turn.id, text=text)
@@ -342,7 +395,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
                                 shutil.copyfile(workspace.resolve(name), dest)
                             item.update(status="completed", ended_at=now(),
                                         calls=gateway.ledger.calls - before_calls,
-                                        accounting_cumulative=gateway.ledger.summary())
+                                        accounting_cumulative=deepcopy(gateway.ledger.summary()))
                         save_json(turn_dir / "turn.json", item)
                         recorder.event("turn_completed", turn=turn.id, index=index)
                         state("between_turns")

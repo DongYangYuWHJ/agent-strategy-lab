@@ -18,16 +18,16 @@ class PermissionConfigurationError(ValueError):
 def role_ids(strategy):
     if strategy == "single_agent":
         return {"solo": ROLE_AGENT_IDS["solo"]}
-    if strategy == "planner_worker":
+    if strategy in {"planner_worker", "planner_handoff"}:
         return {role: ROLE_AGENT_IDS[role] for role in ("planner", "worker")}
     raise ValueError("Unsupported workflow strategy")
 
 
-def role_permissions(role):
+def role_permissions(role, strategy="planner_worker"):
     rules = [{"action": "*", "resource": "*", "effect": "deny"}]
     rules.extend({"action": f"lab_{role}_{tool['name']}", "resource": "*", "effect": "allow"}
                  for tool in role_tool_definitions(role))
-    if role == "planner":
+    if role == "planner" and strategy == "planner_worker":
         rules.append({"action": "subagent", "resource": ROLE_AGENT_IDS["worker"], "effect": "allow"})
     return rules
 
@@ -55,7 +55,7 @@ def audit_registered_agents(agents, expected):
         if not resets:
             raise PermissionConfigurationError(f"No universal role deny boundary: {name}")
         tail = rules[resets[-1] + 1:]
-        grants = {(r["action"], r["resource"]) for r in role_permissions(role) if r["effect"] == "allow"}
+        grants = {(r["action"], r["resource"]) for r in role_permissions(role, expected.get("strategy", "planner_worker")) if r["effect"] == "allow"}
         found = set()
         for rule in tail:
             if (not isinstance(rule, dict) or set(rule) != {"action", "resource", "effect"}
@@ -74,7 +74,7 @@ def audit_registered_agents(agents, expected):
     return checked
 
 
-def permission_probes(role):
+def permission_probes(role, strategy="planner_worker"):
     probes = [{"action": action, "resources": [resource], "expected": "deny"}
               for action, resource in (("edit", "solution.py"), ("edit", "opencode.jsonc"),
                   ("edit", "../checks/final.py"), ("read", "solution.py"),
@@ -88,7 +88,7 @@ def permission_probes(role):
     if role == "planner":
         probes.append({"action": "lab_planner_write_file", "resources": ["*"], "expected": "deny"})
     probes.append({"action": "subagent", "resources": [ROLE_AGENT_IDS["worker"]],
-                   "expected": "allow" if role == "planner" else "deny"})
+                   "expected": "allow" if role == "planner" and strategy == "planner_worker" else "deny"})
     probes.extend({"action": f"lab_{role}_{tool['name']}", "resources": ["*"], "expected": "allow"}
                   for tool in role_tool_definitions(role))
     return probes
