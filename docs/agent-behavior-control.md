@@ -19,6 +19,19 @@
 
 2026-10-27 调参后，整段会话 `max_total_tokens` 为 200000，单次 `max_output_tokens` 仍为 16384。DeepSeek 使用独立目录项：`deepseek-flash-planner-max`（`reasoning_effort=max`）和 `deepseek-flash-executor-low`（`reasoning_effort=low`）；两者实际调用的仍是 `deepseek-flash`。原 `deepseek-flash` 目录项保留供单 Agent 使用。`low` 已是开启思考时的最低档，`none` 才是关闭思考；本次没有关闭思考，也没有改变 Sol 档位。相同改动已应用到其他 Planner／Executor 实验入口；独立单 Agent 实验入口不变。修改后必须用新输出目录，不能继续旧批次。
 
+2026-10-30 后续调整：上述是历史设置，当前 DeepSeek 的单次输出与累计 Token 限制已取消。在 `configs/models.json`、`configs/models-workflow-comparison.json` 的 DeepSeek 目录项中使用：
+
+```json
+"max_output_tokens": null,
+"enforce_total_token_limit": false
+```
+
+`null` 表示原生请求和网关转发均不发送 `max_tokens`，并清除 OpenCode 适配器带入的其他输出额度字段。服务端仍有默认输出及上下文限制：当前开启思考的 low/high 默认 64K、max 默认 128K；这些数值用于费用预留及 OpenCode 元数据，不作为运行器写入请求的上限。达到服务端长度限制时记录 `provider_length_limit`，不执行截断的工具调用，也不自动付费续接。依据：[DeepSeek API](https://api-docs.deepseek.com/api/create-chat-completion/)，核对日期 2026-10-30。
+
+`false` 表示 DeepSeek 请求不受整段 Token 额度准入／停止条件约束，但全部输入、输出、推理及费用仍记入总账。混合角色时，Sol 等其他模型继续受 Token 预算约束，DeepSeek 的用量不挤占它们的额度。账本 `total_tokens` 是全部真实用量；`token_budget_tokens` 是参与本地累计 Token 限制的部分。
+
+费用、时间、生成调用次数、工具次数、传输字节及单次输入估算保护保持生效；单次输入估算上限仍为 64000，并非取消所有输入／传输边界。费用准入按服务商默认输出额度预留，仍可能在实际费用未达上限时拒绝下一请求。Sol 的输出 16384 和配置中的累计上限不变。当前三组比较可使用新目录 `artifacts/solo-handoff-comparison-20261030-02`，但本次修改没有启动付费重测。
+
 只检查配置、不运行模型：
 
 ```powershell

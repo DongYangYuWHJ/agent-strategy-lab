@@ -137,7 +137,8 @@ def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
     packages = {"deepseek": "openai-compatible", "openai": "openai/responses", "anthropic": "anthropic"}
     for model in models:
         entry = {"modelID": model.model, "name": model.id,
-                 "limit": {"context": 100000, "input": limits.max_estimated_input_tokens, "output": model.max_output_tokens},
+                 "limit": {"context": 1048576 if model.provider == "deepseek" and model.max_output_tokens is None else 100000,
+                           "input": limits.max_estimated_input_tokens, "output": model.output_reserve_tokens},
                  "capabilities": {"tools": True, "input": ["text"], "output": ["text"],
                                   "reasoning": {"supported": model.reasoning_effort != "none"}}}
         if model.provider == "deepseek":
@@ -333,6 +334,9 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
         "task": task.public_contract(), "task_fingerprint": task_fingerprint(task),
         "model": asdict(models[0]), "models": [asdict(m) for m in models],
         "limits": asdict(limits), "strategy": {"name": strategy, "version": 1}, "workflow": asdict(workflow),
+        "token_policy": {m.id: {"max_output_tokens": m.max_output_tokens,
+                               "enforce_total_token_limit": m.enforce_total_token_limit,
+                               "output_reserve_tokens": m.output_reserve_tokens} for m in models},
         "system_prompt": SYSTEM, "role_prompts": role_prompts, "execution_kind": "live",
         "agent_ids": role_ids(strategy), "permission_policy": PERMISSION_POLICY_VERSION,
         "token_counting": {m.id: gateway.clients[m.id].token_counting_info() for m in models}}

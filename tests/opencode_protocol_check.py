@@ -37,6 +37,8 @@ observed_tools = {}
 def fake_upstream(provider, payload, timeout):
     global call_index
     call_index += 1
+    if provider.model.max_output_tokens is None:
+        assert not {"max_tokens", "max_completion_tokens", "max_output_tokens"}.intersection(payload), "Adapter reintroduced a local output cap"
     all_text = json.dumps(payload["messages"], ensure_ascii=False)
     tools = payload.get("tools", [])
     names = {t["function"]["name"] for t in tools}

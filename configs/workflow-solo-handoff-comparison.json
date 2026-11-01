@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "backend": "opencode",
+  "workflow": "workflows/daily-review.json",
+  "architectures": [
+    {"id": "deepseek-solo", "strategy": "single_agent", "models": ["deepseek-flash"]},
+    {"id": "sol-solo", "strategy": "single_agent", "models": ["gpt-6.1-sol"]},
+    {"id": "sol-handoff-deepseek", "strategy": "planner_handoff", "models": ["gpt-6.1-sol", "deepseek-flash-executor-low"]}
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "4.50",
+  "limits": {
+    "max_calls": 20,
+    "max_tool_steps": 40,
+    "max_total_tokens": 200000,
+    "max_seconds": 900,
+    "request_timeout_seconds": 300,
+    "check_timeout_seconds": 300,
+    "max_cost_usd": "0.50"
+  },
+  "tasks": [
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc390-b/task.json",
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc391-d/task.json",
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc391-e/task.json"
+  ]
+}

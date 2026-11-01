@@ -23,6 +23,7 @@ class Ledger:
         self.calls = 0
         self.tool_steps = 0
         self.tokens = 0
+        self.token_budget_tokens = 0
         self.cost = Decimal(0)
         self.unknown_cost_reserve = Decimal(0)
         self.unknown_calls = 0
@@ -41,11 +42,11 @@ class Ledger:
             raise ValueError("Invalid estimated input tokens")
         if input_reserve > self.limits.max_estimated_input_tokens:
             raise StopRun("input_estimate_limit")
-        token_reserve = input_reserve + model.max_output_tokens
+        token_reserve = input_reserve + model.output_reserve_tokens
         max_input_rate = max(money(model.pricing.input), money(model.pricing.cache_write),
                              money(model.pricing.cached_input))
-        reserve = (input_reserve * max_input_rate + model.max_output_tokens * money(model.pricing.output)) / Decimal(1000000)
-        if self.tokens + token_reserve > self.limits.max_total_tokens:
+        reserve = (input_reserve * max_input_rate + model.output_reserve_tokens * money(model.pricing.output)) / Decimal(1000000)
+        if model.enforce_total_token_limit and self.token_budget_tokens + token_reserve > self.limits.max_total_tokens:
             raise StopRun("token_limit")
         if self.cost + self.unknown_cost_reserve + reserve > money(self.limits.max_cost_usd):
             raise StopRun("budget_limit")
@@ -56,6 +57,8 @@ class Ledger:
         cost = usage_cost(usage, model.pricing)
         self.cost += cost
         self.tokens += usage.total
+        if model.enforce_total_token_limit:
+            self.token_budget_tokens += usage.total
         for key, value in asdict(usage).items():
             self.usage[key] += value
         entry = {"call": self.calls, "model_config_id": model.id, "returned_model": returned_model,
@@ -66,7 +69,7 @@ class Ledger:
     def check_observed_limits(self):
         if self.cost > money(self.limits.max_cost_usd):
             raise StopRun("budget_limit")
-        if self.tokens > self.limits.max_total_tokens:
+        if self.token_budget_tokens > self.limits.max_total_tokens:
             raise StopRun("token_limit")
 
     def tool_step(self):
@@ -80,7 +83,7 @@ class Ledger:
 
     def summary(self):
         return {"calls": self.calls, "tool_steps": self.tool_steps,
-                "total_tokens": self.tokens, "usage": self.usage,
+                "total_tokens": self.tokens, "token_budget_tokens": self.token_budget_tokens, "usage": self.usage,
                 "estimated_cost_usd": str(self.cost),
                 "unknown_cost_reserve_usd": str(self.unknown_cost_reserve),
                 "unknown_calls": self.unknown_calls,

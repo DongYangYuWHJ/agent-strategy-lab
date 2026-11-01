@@ -43,6 +43,10 @@ OpenCode 通过本机网关使用 DeepSeek Chat Completions、OpenAI Responses�
 
 ## 架构配置
 
+同批三组对照入口为 `configs/workflow-solo-handoff-comparison.json`，配合 `--catalog configs/models-workflow-comparison.json`：DeepSeek 单体 low、Sol 单体 medium、Sol 规划后由 DeepSeek low 接管。三道开发题、相同四轮，每例一次，共九例；整段 200000 Token、单次输出 16384、每例 $0.50、批次 $4.50。单体 DeepSeek 与接管角色虽使用不同目录 ID，实际模型、思考档位、输出额度、计数和价格一致。停止和基础设施异常分别保留，未启动模型的案例不计为模型能力失败。
+
+以上额度是首批对照设置。2026-10-30 后续已按要求取消 DeepSeek 的本地输出和累计 Token 限制：模型项改为 `max_output_tokens: null`、`enforce_total_token_limit: false`；原始报告保留，Sol 设置不变。费用仍按服务商默认输出额度预留，时间和调用次数等边界仍生效。当前配置说明见 [行为控制教程](agent-behavior-control.md)，本次参数修改未运行新的付费批次。
+
 新增 `planner_handoff`：第一轮 Planner 作为主 Agent 规划，完成后在同一会话切换 Agent 和模型，后三轮由 Executor 作为主 Agent 直接处理。该策略没有子会话或委派，也不会自动召回 Planner；详见 [配置与行为控制教程](agent-behavior-control.md) 和 [计划 012](decisions/012-planner-handoff-and-routing.md)。独立入口为 `configs/workflow-planner-handoff.json`，配合 `configs/models-workflow-comparison.json`；已完成本机固定回复检查，尚未付费运行。
 
 `architectures` 每项包含唯一 id、strategy 和有序 models 列表。例如：

@@ -1,10 +1,10 @@
 # 012：规划后交接主会话与 Router 研究
 
-建立：2026-10-27。状态：已实现规划后交接，通过本机固定回复协议检查；尚未运行付费模型比较。
+建立：2026-10-27；更新：2026-10-31。状态：已实现并完成多轮线上比较；当前选用任务的质量区分度有限，后续优先扩展任务类型。Router 尚未实现。
 
 ## 背景与假设
 
-[011](011-planner-executor.md) 中四轮消息均先交给 Planner；Sol→Sol 的 Planner 调用量与 Sol 单体完成全部任务相同，另有 Executor 开销。假设减少 Planner 后续参与可能降低总费用，尚无新实验结论。
+[011](011-planner-executor.md) 中四轮消息均先交给 Planner；Sol→Sol 的 Planner 调用量与 Sol 单体完成全部任务相同，另有 Executor 开销。据此提出减少 Planner 后续参与可能降低总费用的假设；后续线上观察见下方补记。
 
 ## 决定与变化
 
@@ -27,6 +27,14 @@
 
 136 项本地回归通过；同模型交接、不同模型 ID 交接、异常权限拒绝及旧主／子结构检查均通过。证据：[验证汇总](../../artifacts/handoff-verification-20261027.json)、[回归记录](../../artifacts/handoff-regression-final-20261027.txt)。
 
-尚未运行付费模型比较。真实工作可多轮讨论方案；本次固定第一轮交接仅检验这一种使用方式，不能代表全部日常开发。
+后续已完成 Sol／DeepSeek 单体、规划后接管及 DeepSeek max→low 等线上比较，各批参数和结果以保存快照为准。真实工作可多轮讨论方案；固定第一轮交接仅检验这一种使用方式，不能代表全部日常开发。
+
+## 任务集区分度与后续方向：2026-10-31 补记
+
+- **观察**：DeepSeek low 单体已能完成选用的中等／困难题，隐藏验收均为 40/40；Sol 及部分接管方案也能通过。当前反复使用的三道算法开发题，在最终质量上不足以清晰区分模型与架构，成本和耗时差异仍有价值。
+- **边界**：样本少、每项运行次数少，部分批次参数不同。不能由此认定 DeepSeek 与 Sol 能力相同，或规划在所有场景都无用；也未对全部 18 道任务作出同样判断。
+- **决定**：后续优先增加多文件修改、现有代码理解和回归测试等真实开发任务，并对关键结果适当重复；扩展任务区分度后再比较架构，暂不继续仅靠增加角色组合寻找收益。
+
+证据：[三组同批对照](../../artifacts/solo-handoff-comparison-20261030-01/comparison.md)、[DeepSeek 单体中难题重测](../../artifacts/deepseek-no-token-cap-live-20261030-01/review.md)、[DeepSeek max→low 与单体比较](../../artifacts/deepseek-handoff-live-20261031-01/comparison.md)。
 
 依据：[OpenCode V2 Agent 与模型选择](https://opencode.ai/v2/docs/agents/)、[会话切换扩展接口](https://opencode.ai/v2/docs/build/plugins/)。文档描述能力不等于本机版本已验证。

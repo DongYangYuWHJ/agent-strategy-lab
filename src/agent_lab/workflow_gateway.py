@@ -150,6 +150,9 @@ class Gateway:
                 payload["max_tokens"] = model.max_output_tokens
                 if model.provider == "deepseek":
                     payload.pop("max_completion_tokens", None)
+                    payload.pop("max_output_tokens", None)
+                    if model.max_output_tokens is None:
+                        payload.pop("max_tokens", None)
                     payload["thinking"] = {"type": "disabled" if model.reasoning_effort == "none" else "enabled"}
                     payload["reasoning_effort"] = model.reasoning_effort
                     payload["stream_options"] = {"include_usage": True}
@@ -200,6 +203,8 @@ class Gateway:
             if ((model.provider == "deepseek" and raw["choices"][0]["finish_reason"] == "length")
                     or (model.provider == "openai" and raw.get("status") != "completed")
                     or (model.provider == "anthropic" and raw.get("stop_reason") == "max_tokens")):
+                if model.provider == "deepseek" and model.max_output_tokens is None:
+                    raise StopRun("provider_length_limit")
                 raise StopRun("output_token_limit" if usage.output_tokens >= model.max_output_tokens else "incomplete_model_response")
             # Admit all tools, including OpenCode's native subagent handoffs,
             # before releasing model output. MCP execution is not counted twice.

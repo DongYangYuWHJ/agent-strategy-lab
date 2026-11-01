@@ -178,12 +178,15 @@ class DeepSeekProvider(Provider):
             raise TokenCountError(f"DeepSeek local input token counting failed ({type(exc).__name__}); no generation request was sent") from None
 
     def prepare(self):
-        return {"model": self.model.model,
+        payload = {"model": self.model.model,
                 "messages": [{"role": "system", "content": self.system}, *self.messages],
                 "tools": [{"type": "function", "function": tool} for tool in self.tools],
                 "max_tokens": self.model.max_output_tokens,
                 "thinking": {"type": "disabled" if self.model.reasoning_effort == "none" else "enabled"},
                 "reasoning_effort": self.model.reasoning_effort}
+        if self.model.max_output_tokens is None:
+            payload.pop("max_tokens")
+        return payload
 
     def send(self, payload, timeout):
         return request_json("https://api.deepseek.com/chat/completions", payload,

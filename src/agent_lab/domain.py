@@ -101,17 +101,22 @@ class Model:
     provider: str
     model: str
     pricing: Pricing
-    max_output_tokens: int = 4096
+    max_output_tokens: int | None = 4096
     reasoning_effort: str = "medium"
     mock_behavior: str = "pass"
     token_counting: str = "estimate"
+    enforce_total_token_limit: bool = True
 
     def __post_init__(self):
         safe_id(self.id)
         if self.provider not in {"mock", "openai", "deepseek", "anthropic"}:
             raise ValueError("Unsupported provider")
-        if not self.model or type(self.max_output_tokens) is not int or not 16 <= self.max_output_tokens <= 32768:
+        if not self.model or (self.max_output_tokens is None and self.provider != "deepseek") or (
+                self.max_output_tokens is not None and
+                (type(self.max_output_tokens) is not int or not 16 <= self.max_output_tokens <= 32768)):
             raise ValueError("Invalid model or output limit")
+        if type(self.enforce_total_token_limit) is not bool or (not self.enforce_total_token_limit and self.provider != "deepseek"):
+            raise ValueError("Only DeepSeek supports disabling the local total Token limit")
         if self.reasoning_effort not in {"none", "low", "medium", "high", "xhigh", "max"}:
             raise ValueError("Invalid reasoning_effort")
         if self.provider == "openai" and self.model in {"gpt-6-astra", "gpt-6.1-sol"} and self.reasoning_effort == "none":
@@ -126,6 +131,17 @@ class Model:
             raise ValueError("token_counting must be estimate or model")
         if self.provider == "mock" and self.token_counting != "estimate":
             raise ValueError("Mock providers only support estimated token counts")
+
+    @property
+    def output_reserve_tokens(self):
+        """Budget reservation, not a request cap when max_output_tokens is null.
+
+        DeepSeek documented defaults (2026-10-30): 8K non-thinking,
+        64K thinking, 128K max effort. The provider retains its own limits.
+        """
+        if self.max_output_tokens is not None:
+            return self.max_output_tokens
+        return 8192 if self.reasoning_effort == "none" else 131072 if self.reasoning_effort == "max" else 65536
 
 
 def load_models(path: Path) -> dict[str, Model]:

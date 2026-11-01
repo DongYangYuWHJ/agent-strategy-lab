@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "notes": "Rechecked official standard USD/1M rates on 2026-10-24. DeepSeek retains conservative peak rates even off-peak. Reported usage times frozen prices is an estimate, not an invoice. On 2026-10-27 added DeepSeek role profiles: planner=max, executor=low (the lowest thinking-enabled effort, already used by the original profile). Other profiles and prices unchanged.",
+  "notes": "Frozen standard USD/1M rates checked 2026-10-24; estimates, not invoices. DeepSeek uses peak prices. Role profiles: planner=max, executor=low. On 2026-10-30 removed DeepSeek local output and cumulative Token caps: max_output_tokens=null omits max_tokens; enforce_total_token_limit=false exempts its usage from the cumulative Token gate, but not accounting, monetary admission, time or call limits. Monetary reservations use documented provider output defaults (low/high=65536, max=131072). Other models unchanged.",
   "models": [
     {
       "id": "gpt-6-luna",
@@ -31,8 +31,9 @@
         "verified_on": "2026-10-24",
         "source": "https://api-docs.deepseek.com/quick_start/pricing/"
       },
-      "max_output_tokens": 16384,
-      "reasoning_effort": "low"
+      "max_output_tokens": null,
+      "reasoning_effort": "low",
+      "enforce_total_token_limit": false
     },
     {
       "id": "deepseek-flash-planner-max",
@@ -47,8 +48,9 @@
         "verified_on": "2026-10-24",
         "source": "https://api-docs.deepseek.com/quick_start/pricing/"
       },
-      "max_output_tokens": 16384,
-      "reasoning_effort": "max"
+      "max_output_tokens": null,
+      "reasoning_effort": "max",
+      "enforce_total_token_limit": false
     },
     {
       "id": "deepseek-flash-executor-low",
@@ -63,8 +65,9 @@
         "verified_on": "2026-10-24",
         "source": "https://api-docs.deepseek.com/quick_start/pricing/"
       },
-      "max_output_tokens": 16384,
-      "reasoning_effort": "low"
+      "max_output_tokens": null,
+      "reasoning_effort": "low",
+      "enforce_total_token_limit": false
     },
     {
       "id": "gpt-6.1-sol",

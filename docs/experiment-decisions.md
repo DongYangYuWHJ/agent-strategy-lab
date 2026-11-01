@@ -29,7 +29,7 @@
 | [009](decisions/009-single-agent-summary-and-parameter-failures.md) | 五模型单 Agent 汇总与参数导致的停止 | 已核对 60 项原始结果；未调参、未重跑 | 区分真实用量与保守预留，分开额度停止与答案错误 |
 | [010](decisions/010-conversation-workflow-evaluation.md) | 通用 prompt 工作流（简记，目的见 009） | 五模型单 Agent 线上验证通过；协作待验证 | 相同交互下比较架构，整段计量，最终独立验收 |
 | [011](decisions/011-planner-executor.md) | Planner＋Executor 四种搭配，与单 Agent 对照 | 权限已修复；三层任务 18 例完成，11 例通过，已记录分工开销 | 固定交互与总预算，核查角色调用、交接开销及停止归因 |
-| [012](decisions/012-planner-handoff-and-routing.md) | Planner 规划后退出，Executor 接管主会话；记录 Router 方向 | 已实现，本机固定回复验证通过；未跑付费比较 | 同会话切换角色与模型，隔离 Planner 后续参与的开销 |
+| [012](decisions/012-planner-handoff-and-routing.md) | Planner 规划后退出，Executor 接管主会话；记录 Router 方向 | 已完成线上比较；当前任务质量区分度有限，优先扩展任务类型 | 同会话角色切换、成本比较与任务集区分度 |
 
 ## 调参集为什么借鉴机器学习
 

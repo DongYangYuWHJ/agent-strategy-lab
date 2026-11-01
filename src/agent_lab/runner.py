@@ -173,6 +173,8 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
                 if reply.incomplete_reason == "max_output_tokens":
                     raise StopRun("output_token_limit")
                 if reply.incomplete_reason == "length":
+                    if model.max_output_tokens is None:
+                        raise StopRun("provider_length_limit")
                     raise StopRun("output_token_limit" if usage.output_tokens >= model.max_output_tokens
                                   else "generation_length_limit")
                 raise StopRun("incomplete_model_response")

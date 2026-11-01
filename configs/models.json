@@ -31,8 +31,9 @@
         "verified_on": "2026-10-10",
         "source": "https://api-docs.deepseek.com/quick_start/pricing/"
       },
-      "max_output_tokens": 16384,
-      "reasoning_effort": "low"
+      "max_output_tokens": null,
+      "reasoning_effort": "low",
+      "enforce_total_token_limit": false
     },
     {
       "id": "gpt-6.1-sol",
