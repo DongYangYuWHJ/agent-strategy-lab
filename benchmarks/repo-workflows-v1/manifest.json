@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "id": "repo-workflows-v1",
+  "origin": "original synthetic mini repositories",
+  "created_on": "2026-10-31",
+  "split": "development",
+  "tasks": [
+    {
+      "id": "repo-page-boundaries",
+      "title": "修复分页 API 的边界与元数据",
+      "category": "local-repair",
+      "manifest": "tasks/repo-page-boundaries/task.json",
+      "source_files": 6,
+      "editable_files": 1,
+      "public_cases": 3,
+      "final_cases": 20,
+      "final_properties": [],
+      "difficulty": "unmeasured"
+    },
+    {
+      "id": "repo-retry-policy",
+      "title": "修复 HTTP 重试的次数与等待策略",
+      "category": "local-repair",
+      "manifest": "tasks/repo-retry-policy/task.json",
+      "source_files": 8,
+      "editable_files": 1,
+      "public_cases": 3,
+      "final_cases": 30,
+      "final_properties": [],
+      "difficulty": "unmeasured"
+    },
+    {
+      "id": "repo-timeout-wiring",
+      "title": "贯通命令行、配置与传输层的超时设置",
+      "category": "cross-file-change",
+      "manifest": "tasks/repo-timeout-wiring/task.json",
+      "source_files": 9,
+      "editable_files": 4,
+      "public_cases": 3,
+      "final_cases": 24,
+      "final_properties": [],
+      "difficulty": "unmeasured"
+    },
+    {
+      "id": "repo-note-soft-delete",
+      "title": "为笔记服务增加软删除与恢复",
+      "category": "cross-file-change",
+      "manifest": "tasks/repo-note-soft-delete/task.json",
+      "source_files": 7,
+      "editable_files": 3,
+      "public_cases": 3,
+      "final_cases": 16,
+      "final_properties": [],
+      "difficulty": "unmeasured"
+    },
+    {
+      "id": "repo-cache-isolation",
+      "title": "定位文档缓存的租户串数据与返回值污染",
+      "category": "diagnosis",
+      "manifest": "tasks/repo-cache-isolation/task.json",
+      "source_files": 9,
+      "editable_files": 2,
+      "public_cases": 3,
+      "final_cases": 16,
+      "final_properties": [],
+      "difficulty": "unmeasured"
+    },
+    {
+      "id": "repo-cursor-pagination",
+      "title": "定位相同时间戳下游标翻页的数据丢失",
+      "category": "diagnosis",
+      "manifest": "tasks/repo-cursor-pagination/task.json",
+      "source_files": 8,
+      "editable_files": 3,
+      "public_cases": 3,
+      "final_cases": 33,
+      "final_properties": [
+        "complete cursor traversal without lost or duplicated records"
+      ],
+      "difficulty": "unmeasured"
+    }
+  ]
+}

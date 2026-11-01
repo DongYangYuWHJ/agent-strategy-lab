@@ -1,0 +1,3 @@
+{
+  "workshop/paging.py": "def paginate(items, page=1, page_size=20):\n    if type(page) is not int or type(page_size) is not int or page < 1 or page_size < 1:\n        raise ValueError(\"invalid pagination\")\n    total = len(items)\n    start = (page - 1) * page_size\n    total_pages = (total + page_size - 1) // page_size\n    return {\"items\": items[start:start + page_size], \"page\": page, \"page_size\": page_size,\n            \"total\": total, \"total_pages\": total_pages, \"has_next\": bool(items[start:start + page_size])}\n"
+}

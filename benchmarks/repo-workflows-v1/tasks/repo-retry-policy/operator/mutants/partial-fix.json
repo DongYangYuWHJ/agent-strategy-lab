@@ -1,0 +1,3 @@
+{
+  "workshop/retry.py": "from math import isfinite\ndef execute(transport, clock, max_attempts, base_delay):\n    if type(max_attempts) is not int or max_attempts < 1:\n        raise ValueError(\"invalid attempts\")\n    if type(base_delay) not in (int, float) or not isfinite(base_delay) or base_delay < 0:\n        raise ValueError(\"invalid delay\")\n    retryable = {429, 500, 502, 503, 504}\n    for attempt in range(1, max_attempts + 1):\n        result = transport.send()\n        if result[\"status\"] not in retryable or attempt == max_attempts:\n            return result\n        hint = result.get(\"retry_after\")\n        delay = hint if type(hint) in (int, float) and hint > 0 else base_delay * 2 ** (attempt - 1)\n        clock.sleep(delay)\n"
+}

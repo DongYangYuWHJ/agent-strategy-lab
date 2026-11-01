@@ -1,0 +1,3 @@
+{
+  "workshop/cache.py": "from copy import deepcopy\nclass Cache:\n    def __init__(self):\n        self.entries = {}\n    def get(self, key):\n        return None\n    def put(self, key, value):\n        self.entries[key] = deepcopy(value)\n    def invalidate_document(self, tenant, doc_id):\n        for key in list(self.entries):\n            if key[:2] == (tenant, doc_id):\n                del self.entries[key]\n"
+}

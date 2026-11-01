@@ -1,0 +1,3 @@
+{
+  "workshop/service.py": "from workshop.repository import Repository\nfrom workshop.pagination import fetch\nfrom workshop.tokens import decode\ndef run(request):\n    limit = request.get(\"limit\", 2)\n    if type(limit) is not int or limit < 1:\n        return {\"error\": \"invalid_limit\"}\n    try:\n        marker = decode(request[\"cursor\"]) if request.get(\"cursor\") is not None else None\n    except ValueError:\n        marker = None\n    return fetch(Repository(request[\"records\"]), limit, marker)\n"
+}

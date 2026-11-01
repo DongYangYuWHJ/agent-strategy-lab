@@ -60,3 +60,4 @@
 - [LiveCodeBench 任务与调参方法](livecodebench.md)
 - [OpenCode 接入现状](opencode.md)
 - [日常开发会话工作流与验收设计](workflow-experiments.md)
+- [仓库开发任务与验收审计](repo-tasks.md)

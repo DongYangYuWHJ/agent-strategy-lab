@@ -1,0 +1,3 @@
+{
+  "workshop/settings.py": "from workshop.defaults import DEFAULT_TIMEOUT_MS\ndef load(config, env, cli):\n    if cli.get(\"timeout_ms\") is not None:\n        value = cli[\"timeout_ms\"]\n    elif False:\n        value = env[\"APP_TIMEOUT_MS\"]\n    else:\n        value = config.get(\"timeout_ms\", DEFAULT_TIMEOUT_MS)\n    if type(value) is str:\n        value = value.strip()\n        if not value or any(c not in \"0123456789\" for c in value):\n            raise ValueError(\"invalid timeout\")\n        value = int(value)\n    if type(value) is not int or value < 0:\n        raise ValueError(\"invalid timeout\")\n    return {\"timeout_ms\": value}\n"
+}

@@ -4,6 +4,10 @@
 
 ## 运行与配置
 
+仓库任务入口：`configs/workflow-repo-single.json`，自动发现六个原创小仓库任务，先比较 DeepSeek／Sol 单体；任务内容、离线验收及首轮十二项线上记录见 [仓库任务说明](repo-tasks.md)。首轮含传输和验收计时异常，模型结果与异常分别解释。
+
+`configs/workflow-repo-deepseek-luna.json` 使用相同六题和四轮提示，比较 DeepSeek low 与 GPT-6 Luna medium 单体；已完成一次十二项记录，包含一次请求用量未知，原始状态与费用完整性分别保留，详见仓库任务说明。
+
 ```powershell
 .\run-lab.cmd validate --experiment configs/workflow-single.json
 .\run-lab.cmd batch --experiment configs/workflow-single.json --output artifacts/workflow-deepseek-01

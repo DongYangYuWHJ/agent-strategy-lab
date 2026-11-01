@@ -35,6 +35,8 @@
 - **边界**：样本少、每项运行次数少，部分批次参数不同。不能由此认定 DeepSeek 与 Sol 能力相同，或规划在所有场景都无用；也未对全部 18 道任务作出同样判断。
 - **决定**：后续优先增加多文件修改、现有代码理解和回归测试等真实开发任务，并对关键结果适当重复；扩展任务区分度后再比较架构，暂不继续仅靠增加角色组合寻找收益。
 
+已新增 [六个原创仓库任务](../repo-tasks.md)，局部修复／跨文件修改／问题定位各两个，独立验收与 25 组离线正负对照审计通过。首轮 DeepSeek／Sol 十二项记录已完成：Sol 正式 6/6，DeepSeek 正式 4/6，另两例有传输／验收计时异常。四个干净配对均通过，当前仍未显示清晰质量区分；费用差异及不完整用量的边界见任务说明，不将异常当作模型能力失败。
+
 证据：[三组同批对照](../../artifacts/solo-handoff-comparison-20261030-01/comparison.md)、[DeepSeek 单体中难题重测](../../artifacts/deepseek-no-token-cap-live-20261030-01/review.md)、[DeepSeek max→low 与单体比较](../../artifacts/deepseek-handoff-live-20261031-01/comparison.md)。
 
 依据：[OpenCode V2 Agent 与模型选择](https://opencode.ai/v2/docs/agents/)、[会话切换扩展接口](https://opencode.ai/v2/docs/build/plugins/)。文档描述能力不等于本机版本已验证。

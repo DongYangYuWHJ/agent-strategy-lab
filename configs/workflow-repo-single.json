@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "backend": "opencode",
+  "workflow": "workflows/daily-review.json",
+  "architectures": [
+    {"id": "deepseek-solo", "strategy": "single_agent", "models": ["deepseek-flash"]},
+    {"id": "sol-solo", "strategy": "single_agent", "models": ["gpt-6.1-sol"]}
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "6.00",
+  "limits": {
+    "max_calls": 20,
+    "max_tool_steps": 40,
+    "max_total_tokens": 200000,
+    "max_seconds": 900,
+    "request_timeout_seconds": 300,
+    "check_timeout_seconds": 120,
+    "max_cost_usd": "0.50"
+  },
+  "task_globs": ["../benchmarks/repo-workflows-v1/tasks/*/task.json"]
+}
