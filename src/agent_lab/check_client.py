@@ -2,6 +2,7 @@
 import builtins
 from decimal import Decimal, InvalidOperation
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -20,8 +21,13 @@ def invoke(source, mode="call", **arguments):
     workspace = Path(os.environ["LAB_WORKSPACE"]).resolve()
     if not source.is_relative_to(workspace) or not source.is_file():
         raise ValueError("Submission must be a file inside the workspace")
-    timeout = min(6.0, float(os.environ["LAB_CHECK_DEADLINE"]) - time.monotonic() - 0.25)
-    if timeout <= 0:
+    submission_limit = os.environ.get("LAB_SUBMISSION_TIMEOUT_SECONDS", "6")
+    bounds = [float(os.environ["LAB_CHECK_DEADLINE"]) - time.monotonic() - 0.25]
+    if submission_limit != "none":
+        bounds.append(float(submission_limit))
+    finite = [value for value in bounds if math.isfinite(value)]
+    timeout = min(finite) if finite else None
+    if timeout is not None and timeout <= 0:
         raise SubmissionFailure("Check time budget exhausted")
     environment = {key: os.environ[key] for key in ("SystemRoot", "WINDIR", "TEMP", "TMP", "LANG") if key in os.environ}
     request = {"source": str(source), "mode": mode, **arguments}

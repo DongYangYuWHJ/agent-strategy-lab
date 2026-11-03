@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "python-cachetools-atomic-update",
+  "description": "流式批量更新的原子失败与缓存元数据回滚：在现有项目包内实现需求，保持只读 app.py 的协议。",
+  "acceptance": [
+    "新增 Cache.update_atomic(pairs)，供 Cache/FIFO/LRU/LFU/TTL 各类使用；pairs 为 (key,value) 对的可迭代对象，可能是一次性生成器。成功的效果与按顺序普通写入相同，返回消费的对数（重复 key 也计数），空输入返回0。",
+    "若输入迭代器中途异常、条目无法解包、值超过容量或 getsizeof/写入抛异常，应传播异常，且缓存整体保持调用前状态，不能保留已经插入的前缀或已经淘汰的条目。",
+    "原子状态包括数据、currsize、maxsize、FIFO/LRU 淘汰顺序、LFU 访问频率以及 TTL 到期元数据。失败后的下一次 popitem 与没有调用该失败批次时一致；不能只恢复用户字典。",
+    "成功仍遵守权重容量与原淘汰策略，重复 key 按顺序更新；TTL 中旧条目不得因为复制/提交延长截止时间，新条目使用当前 timer。保留调用者传入的时钟来源，不得替换成冻结或独立时钟。",
+    "更新后普通读写和 cached 装饰器继续使用同一个缓存对象。接口只承诺进程内、单线程、可深拷贝 key/value 的场景；不要求崩溃恢复、线程安全、回滚外部生成器副作用或回滚 getsizeof 的外部副作用。"
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "src/cachetools/__init__.py",
+    "src/cachetools/func.py",
+    "src/cachetools/keys.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

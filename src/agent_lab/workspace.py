@@ -73,6 +73,32 @@ class Workspace:
         target.write_text(content, encoding="utf-8")
         return {"path": path, "bytes": target.stat().st_size}
 
+    def read_file_chunk(self, path, offset):
+        if not isinstance(offset, str) or not offset.isascii() or not offset.isdecimal():
+            raise ValueError("offset must be a nonnegative decimal character offset")
+        content = self.resolve(path).read_text(encoding="utf-8")
+        start = int(offset)
+        if start > len(content):
+            raise ValueError("offset is beyond the end of the file")
+        end = min(len(content), start + 12000)
+        return {"path": path, "content": content[start:end], "offset": start,
+                "next_offset": end if end < len(content) else None,
+                "total_characters": len(content)}
+
+    def edit_file(self, path, old_text, new_text):
+        target = self.resolve(path, writable=True)
+        if (not isinstance(old_text, str) or not old_text or not isinstance(new_text, str)
+                or len(old_text.encode("utf-8")) > 64000 or len(new_text.encode("utf-8")) > 64000):
+            raise ValueError("Edit requires nonempty old_text and replacement text, each <= 64000 bytes")
+        content = target.read_text(encoding="utf-8")
+        if content.count(old_text) != 1:
+            raise ValueError("old_text must match exactly one occurrence; include more context")
+        changed = content.replace(old_text, new_text, 1)
+        if len(changed.encode("utf-8")) > 1000000:
+            raise ValueError("Edited source file must be <= 1 MB")
+        target.write_text(changed, encoding="utf-8")
+        return {"path": path, "bytes": target.stat().st_size, "replacements": 1}
+
     def search(self, query):
         if not isinstance(query, str) or not 1 <= len(query) <= 1000:
             raise ValueError("Search query must be 1-1000 characters")

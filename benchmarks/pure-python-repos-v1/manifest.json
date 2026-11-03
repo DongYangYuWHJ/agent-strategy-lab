@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "id": "pure-python-repos-v1",
+  "split": "development",
+  "provenance": "Real upstream source; manually curated historical upgrade contracts and custom standard-library acceptance, not official benchmark or original issues.",
+  "sources": [
+    {
+      "repo": "msiemens/tinydb",
+      "ref": "v4.0.0",
+      "commit": "a01de8fee6a6c6b4174fcb0e54d6a5e656541e55",
+      "archive": "artifacts\\pure-python-intake\\tinydb-v4.0.0.zip",
+      "sha256": "ecc24ee9ca9518a10c784edb67e96238c08d080a36aec2882593c86a628255ce"
+    },
+    {
+      "repo": "msiemens/tinydb",
+      "ref": "v4.8.0",
+      "commit": "429b27a513f0ad301632379e55667dd99865fb16",
+      "archive": "artifacts\\pure-python-intake\\tinydb-v4.8.0.zip",
+      "sha256": "f11d2cbc97784ceeac105fd05e8c4d09a245c225b05e98cdba1998e2dabe1d91"
+    },
+    {
+      "repo": "pallets/itsdangerous",
+      "ref": "1.1.0",
+      "commit": "6e6359864be6055860adf1e11d8bb0db69ff1840",
+      "archive": "artifacts\\pure-python-intake\\itsdangerous-1.1.0.zip",
+      "sha256": "d32f724639622ee603e4e46e9cb22c820be9f0a142550c179aeaef6ed0b957d4"
+    },
+    {
+      "repo": "pallets/itsdangerous",
+      "ref": "2.2.0",
+      "commit": "096c8d42545d3b68ea21a4f890fb2b2d8979c0bd",
+      "archive": "artifacts\\pure-python-intake\\itsdangerous-2.2.0.zip",
+      "sha256": "502ad59b29c347f90448be4761bce5fea55b84e232ad00ce6f1a212db7737172"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "python-tinydb-upgrade",
+      "manifest": "tasks/python-tinydb-upgrade/task.json",
+      "repo": "msiemens/tinydb",
+      "baseline": "v4.0.0",
+      "reference": "v4.8.0",
+      "difficulty": "unmeasured",
+      "editable_files": 10,
+      "package_python_lines": 1866,
+      "readable_files": 42,
+      "public_scenarios": 5,
+      "final_scenarios": 30
+    },
+    {
+      "id": "python-itsdangerous-upgrade",
+      "manifest": "tasks/python-itsdangerous-upgrade/task.json",
+      "repo": "pallets/itsdangerous",
+      "baseline": "1.1.0",
+      "reference": "2.2.0",
+      "difficulty": "unmeasured",
+      "editable_files": 10,
+      "package_python_lines": 1075,
+      "readable_files": 40,
+      "public_scenarios": 4,
+      "final_scenarios": 35
+    }
+  ]
+}

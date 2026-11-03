@@ -8,7 +8,7 @@ from .workflow_gateway import role_tool_definitions
 
 ROLE_AGENT_IDS = {"solo": "lab-experiment-solo", "planner": "lab-experiment-planner",
                   "worker": "lab-experiment-executor"}
-PERMISSION_POLICY_VERSION = "explicit-role-whitelist-v1"
+PERMISSION_POLICY_VERSION = "explicit-role-whitelist-v2-chunk-edit"
 
 
 class PermissionConfigurationError(ValueError):
@@ -85,8 +85,10 @@ def permission_probes(role, strategy="planner_worker"):
     for other in ("solo", "planner", "worker"):
         if other != role:
             probes.append({"action": f"lab_{other}_write_file", "resources": ["*"], "expected": "deny"})
+            probes.append({"action": f"lab_{other}_edit_file", "resources": ["*"], "expected": "deny"})
     if role == "planner":
         probes.append({"action": "lab_planner_write_file", "resources": ["*"], "expected": "deny"})
+        probes.append({"action": "lab_planner_edit_file", "resources": ["*"], "expected": "deny"})
     probes.append({"action": "subagent", "resources": [ROLE_AGENT_IDS["worker"]],
                    "expected": "allow" if role == "planner" and strategy == "planner_worker" else "deny"})
     probes.extend({"action": f"lab_{role}_{tool['name']}", "resources": ["*"], "expected": "allow"}

@@ -23,11 +23,15 @@ parser.add_argument("output", type=Path)
 parser.add_argument("--strategy", choices=("single_agent", "planner_worker", "planner_handoff"), default="single_agent")
 parser.add_argument("--distinct-model", action="store_true", help="Use a separate fixture model ID for the handoff Executor")
 parser.add_argument("--inject-edit-grant", action="store_true")
+parser.add_argument("--unlimited", action="store_true", help="Exercise null execution limits without paid generation")
+parser.add_argument("--warmup-calls", type=int, default=0, help="Perform fixture read calls before completing the first turn")
 args = parser.parse_args()
 output = args.output.resolve()
 if output.exists():
     raise SystemExit("Use a new output directory")
 model = load_models(ROOT / "configs/models.json")["deepseek-flash"]
+if args.unlimited:
+    model = load_models(ROOT / "configs/models-python-repo-unlimited.json")["deepseek-flash"]
 task = Task.load(ROOT / "benchmarks/livecodebench-v2/tasks/lcb-abc387-a/task.json")
 workflow = Workflow.load(ROOT / "configs/workflows/daily-review.json")
 call_index = 0
@@ -56,7 +60,9 @@ def fake_upstream(provider, payload, timeout):
     delegated = any(m.get("role") == "tool" and "<subagent " in str(m.get("content", "")) for m in payload["messages"])
     should_delegate = role == "planner" and "核实后按你认为合适的方案实施" in all_text and not delegated
     action = None
-    if should_delegate:
+    if call_index <= args.warmup_calls:
+        action = {"name": next(n for n in names if n.endswith("read_file")), "arguments": {"path": "solution.py"}}
+    elif should_delegate:
         assert "subagent" in names
         action = {"name": "subagent", "arguments": {"agent": ROLE_AGENT_IDS["worker"], "description": "Protocol fixture implementation",
             "prompt": "Implement solution.py: read two integers A B, print (A+B)**2. Current turn permits edits, solution.py is the only editable file. Return actual evidence. No further delegation."}}
@@ -99,7 +105,9 @@ with patch("agent_lab.providers.require_credential", return_value="protocol-fixt
     if args.distinct_model:
         assert args.strategy == "planner_handoff"
         models[1] = replace(model, id="fixture-executor")
-    result = run_workflow(task, models, Limits(max_calls=20, max_tool_steps=40, max_seconds=180, check_timeout_seconds=30), output, workflow, args.strategy)
+    limits = (Limits(**json.loads((ROOT / "configs/workflow-python-repo-comparison.json").read_text(encoding="utf-8"))["limits"])
+              if args.unlimited else Limits(max_calls=20, max_tool_steps=40, max_seconds=180, check_timeout_seconds=30))
+    result = run_workflow(task, models, limits, output, workflow, args.strategy)
 result["execution_kind"] = "simulated"
 directory = Path(result["artifact_dir"])
 config = json.loads((directory / "config.json").read_text(encoding="utf-8"))
@@ -114,7 +122,8 @@ legacy = next((a for a in registered if a.get("id") == "lab-worker"), None)
 assert legacy and any(p.get("action") == "edit" and p.get("effect") == "allow" for p in legacy.get("permissions", [])), "Legacy config was not loaded"
 save_json(directory / "fixture-assertions.json", {"legacy_config_present": True, "legacy_config_unchanged": True,
           "observed_tools_by_role": observed_tools, "fixture_generation_requests": call_index,
-          "injected_edit_grant": args.inject_edit_grant})
+          "injected_edit_grant": args.inject_edit_grant, "unlimited": args.unlimited,
+          "warmup_calls": args.warmup_calls})
 write_report(output)
 print(json.dumps({k: result[k] for k in ["status", "stop_reason", "turns_completed", "turns_expected", "artifact_dir"]}))
 if args.inject_edit_grant:

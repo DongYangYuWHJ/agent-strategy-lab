@@ -43,7 +43,8 @@ def load_workflow_experiment(path, catalog, model_filter=None):
     repeats, seed = raw.get("repeats", 1), raw.get("seed", 42)
     if type(repeats) is not int or not 1 <= repeats <= 100 or type(seed) is not int:
         raise ValueError("Invalid repeats or seed")
-    return tasks, architectures, workflow, Limits(**raw.get("limits", {})), repeats, seed, money(raw["batch_budget_usd"])
+    budget = raw["batch_budget_usd"]
+    return tasks, architectures, workflow, Limits(**raw.get("limits", {})), repeats, seed, money(budget) if budget is not None else None
 
 
 def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
@@ -63,7 +64,7 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
                 "role_prompts": {a["id"]: workflow_role_prompts(a["strategy"]) for a, _ in architectures},
                 "permission_policy": PERMISSION_POLICY_VERSION,
                 "agent_ids": {a["id"]: role_ids(a["strategy"]) for a, _ in architectures},
-                "limits": asdict(limits), "seed": seed, "plan": plan, "batch_budget_usd": str(budget)}
+                "limits": asdict(limits), "seed": seed, "plan": plan, "batch_budget_usd": str(budget) if budget is not None else None}
     output = output.resolve()
     if resume:
         manifest = read_json(output / "batch.json")
@@ -93,7 +94,7 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
                 manifest["status"] = "usage_unknown"
                 break
             spent = sum((money(r["accounting"]["estimated_cost_usd"]) for r in existing), Decimal(0))
-            if spent >= budget:
+            if budget is not None and spent >= budget:
                 manifest["status"] = "batch_budget_limit"
                 break
             task = task_map[cell["task"]]
@@ -102,7 +103,10 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
             arch, models = arch_map[cell["architecture"]]
             if workflow_role_prompts(arch["strategy"]) != identity["role_prompts"][arch["id"]]:
                 raise ValueError("Role instructions changed during workflow batch")
-            effective = replace(limits, max_cost_usd=str(min(money(limits.max_cost_usd), budget - spent)))
+            fee_bounds = ([money(limits.max_cost_usd)] if limits.max_cost_usd is not None else [])
+            if budget is not None:
+                fee_bounds.append(budget - spent)
+            effective = replace(limits, max_cost_usd=str(min(fee_bounds)) if fee_bounds else None)
             manifest["inflight"] = {cell["cell"]: cell}
             save_json(output / "batch.json", manifest)
             result = run_workflow(task, models, effective, output / "runs", workflow, arch["strategy"],

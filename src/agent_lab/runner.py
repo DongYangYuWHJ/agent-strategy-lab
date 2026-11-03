@@ -6,7 +6,7 @@ import time
 import uuid
 from . import __version__
 from .accounting import Ledger, StopRun
-from .domain import Limits, Task, digest, now, save_json
+from .domain import Limits, Task, digest, now, save_json, bounded_timeout
 from .evaluation import Checks
 from .providers import ProviderError, make_provider
 from .strategies import Action, get_strategy
@@ -59,6 +59,8 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
     save_json(directory / "task.json", task.public_contract())
 
     def remaining():
+        if limits.max_seconds is None:
+            return float("inf")
         left = limits.max_seconds - (time.monotonic() - started)
         if left <= 0:
             raise StopRun("time_limit")
@@ -93,12 +95,12 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
         signature = (workspace.fingerprint(), public["exit_code"], public["output"])
         no_progress = no_progress + 1 if signature == last_failure else 1
         last_failure = signature
-        if no_progress >= limits.max_no_progress:
+        if limits.max_no_progress is not None and no_progress >= limits.max_no_progress:
             raise StopRun("no_progress")
         repairs += 1
         state("repair")
         return {"ok": True, "accepted": False, "public_checks": public,
-                "repairs_remaining": limits.max_repairs - repairs,
+                "repairs_remaining": limits.max_repairs - repairs if limits.max_repairs is not None else None,
                 "instruction": "Repair the demonstrated failures, then submit again."}
 
     try:
@@ -107,19 +109,19 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
         checks = Checks(task, directory, workspace, limits.check_timeout_seconds)
         while status == "running":
             remaining()
-            if ledger.calls >= limits.max_calls:
+            if limits.max_calls is not None and ledger.calls >= limits.max_calls:
                 raise StopRun("call_limit")
             state("executing")
             payload = provider.prepare()
             encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-            if len(encoded) > limits.max_request_bytes:
+            if limits.max_request_bytes is not None and len(encoded) > limits.max_request_bytes:
                 recorder.event("request_prepared", request_bytes=len(encoded), estimated_input_tokens=None)
                 raise StopRun("request_size_limit")
             input_token_count = None
             if model.token_counting == "model":
                 state("counting_input_tokens")
                 try:
-                    input_token_count = provider.count_input_tokens(payload, min(limits.token_count_timeout_seconds, remaining()))
+                    input_token_count = provider.count_input_tokens(payload, bounded_timeout(limits.token_count_timeout_seconds, remaining()))
                 except TokenCountError as exc:
                     recorder.event("input_token_count_failed", message=str(exc))
                     raise StopRun("input_count_error") from None
@@ -140,7 +142,7 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
             # Persist before network activity so an interrupted request is visible.
             state("waiting_for_model")
             try:
-                raw = provider.send(payload, min(limits.request_timeout_seconds, remaining()))
+                raw = provider.send(payload, bounded_timeout(limits.request_timeout_seconds, remaining()))
             except ProviderError:
                 ledger.mark_unknown(reservation)
                 unknown_usage = True
@@ -171,7 +173,7 @@ def run_task(task: Task, model, limits: Limits, output: Path, strategy_name="sin
                 # No partial tool calls, verification, repairs or automatic paid
                 # retries. Usage was recorded above even when output is empty.
                 if reply.incomplete_reason == "max_output_tokens":
-                    raise StopRun("output_token_limit")
+                    raise StopRun("output_token_limit" if model.max_output_tokens is not None else "provider_length_limit")
                 if reply.incomplete_reason == "length":
                     if model.max_output_tokens is None:
                         raise StopRun("provider_length_limit")

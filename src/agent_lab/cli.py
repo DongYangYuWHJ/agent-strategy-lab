@@ -39,7 +39,7 @@ def main(argv=None):
     demo.add_argument("--output", type=Path)
     batch = commands.add_parser("batch", help="运行或继续实验批次")
     batch.add_argument("--experiment", type=Path, default=ROOT / "configs" / "screening.json")
-    batch.add_argument("--catalog", type=Path, default=ROOT / "configs" / "models.json")
+    batch.add_argument("--catalog", type=Path, help="Model catalog; defaults to experiment catalog or configs/models.json")
     batch.add_argument("--models", help="只运行指定模型 ID，使用逗号分隔")
     batch.add_argument("--output", type=Path)
     batch.add_argument("--resume", action="store_true")
@@ -55,13 +55,16 @@ def main(argv=None):
     variance.add_argument("--input", type=Path, required=True)
     validate = commands.add_parser("validate", help="检查实验配置，不调用模型")
     validate.add_argument("--experiment", type=Path, default=ROOT / "configs" / "screening.json")
-    validate.add_argument("--catalog", type=Path, default=ROOT / "configs" / "models.json")
+    validate.add_argument("--catalog", type=Path)
     task_list = commands.add_parser("list-tasks", help="预览自动发现的任务列表，不调用模型")
     task_list.add_argument("--experiment", type=Path, default=ROOT / "configs" / "screening.json")
-    task_list.add_argument("--catalog", type=Path, default=ROOT / "configs" / "models.json")
+    task_list.add_argument("--catalog", type=Path)
     task_list.add_argument("--json", action="store_true", help="输出可供其他程序读取的 JSON 数组")
     args = parser.parse_args(argv)
     try:
+        if args.command in {"batch", "validate", "list-tasks"} and args.catalog is None:
+            catalog = read_json(args.experiment).get("catalog")
+            args.catalog = args.experiment.resolve().parent / catalog if catalog else ROOT / "configs/models.json"
         if args.command == "audit-livecodebench":
             from .livecodebench import audit_subset
             output = args.output or new_output("lcb-audit")
@@ -114,10 +117,12 @@ def main(argv=None):
             if read_json(args.experiment).get("backend") == "opencode":
                 from .workflow_experiments import load_workflow_experiment
                 tasks, architectures, workflow, limits, repeats, seed, budget = load_workflow_experiment(args.experiment, load_models(args.catalog))
-                print(f"配置通过：OpenCode；{len(tasks)} 个任务，{len(architectures)} 种架构，{len(workflow.turns)} 轮交互，{repeats} 次重复；批次预算 ${budget}")
+                budget_label = f"${budget}" if budget is not None else "不设上限"
+                print(f"配置通过：OpenCode；{len(tasks)} 个任务，{len(architectures)} 种架构，{len(workflow.turns)} 轮交互，{repeats} 次重复；批次预算 {budget_label}")
                 return 0
             tasks, models, limits, repeats, seed, budget = load_experiment(args.experiment, load_models(args.catalog))
-            print(f"配置通过：{len(tasks)} 个任务，{len(models)} 个模型，{repeats} 次重复；批次预算 ${budget}")
+            budget_label = f"${budget}" if budget is not None else "不设上限"
+            print(f"配置通过：{len(tasks)} 个任务，{len(models)} 个模型，{repeats} 次重复；批次预算 {budget_label}")
         elif args.command == "list-tasks":
             if read_json(args.experiment).get("backend") == "opencode":
                 from .workflow_experiments import load_workflow_experiment

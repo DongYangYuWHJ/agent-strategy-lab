@@ -63,7 +63,8 @@ def audit(output, suite=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--suite", type=Path, help="Task suite directory; defaults to repo-workflows-v1")
     args = parser.parse_args()
-    result = audit(args.output.resolve())
+    result = audit(args.output.resolve(), args.suite)
     print("AUDIT", "PASS" if result["passed"] else "FAIL", result["controls"], "controls", flush=True)
     raise SystemExit(0 if result["passed"] else 1)

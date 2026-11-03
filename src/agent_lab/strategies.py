@@ -25,7 +25,7 @@ class SingleAgent:
             return Decision(Action.STOP, "check_timeout" if result["status"] == "timed_out" else "environment_error")
         if result["passed"]:
             return Decision(Action.FINISH, "public_checks_passed")
-        if repairs >= limits.max_repairs:
+        if limits.max_repairs is not None and repairs >= limits.max_repairs:
             return Decision(Action.STOP, "repair_limit")
         return Decision(Action.REPAIR, "public_checks_failed")
 

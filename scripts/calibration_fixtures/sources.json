@@ -1,0 +1,5 @@
+[
+  {"repo":"msiemens/tinydb","ref":"v4.8.0","commit":"429b27a513f0ad301632379e55667dd99865fb16","archive":"artifacts/pure-python-intake/tinydb-v4.8.0.zip","sha256":"f11d2cbc97784ceeac105fd05e8c4d09a245c225b05e98cdba1998e2dabe1d91"},
+  {"repo":"pallets/itsdangerous","ref":"2.2.0","commit":"096c8d42545d3b68ea21a4f890fb2b2d8979c0bd","archive":"artifacts/pure-python-intake/itsdangerous-2.2.0.zip","sha256":"502ad59b29c347f90448be4761bce5fea55b84e232ad00ce6f1a212db7737172"},
+  {"repo":"tkem/cachetools","ref":"v5.3.3","commit":"1fcadea96ce67d499965b085f0b0b2253b78bb80","archive":"artifacts/task-calibration-intake/cachetools-5.3.3.zip","sha256":"4cae4c93c0ccdd4b3e699cdcf22963cc1d2e957ccd9ec26d053297adb5f90866"}
+]

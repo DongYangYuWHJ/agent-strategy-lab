@@ -8,6 +8,7 @@ import shutil
 import json
 import secrets
 from .workspace import file_hash
+from .domain import bounded_timeout
 
 
 class Checks:
@@ -44,8 +45,11 @@ class Checks:
         # Credentials are deliberately absent from child processes.
         environment = {key: os.environ[key] for key in ("SystemRoot", "WINDIR", "TEMP", "TMP", "LANG") if key in os.environ}
         environment["LAB_WORKSPACE"] = str(self.workspace.root.resolve())
-        timeout = max(0.01, min(self.timeout, remaining))
-        environment["LAB_CHECK_DEADLINE"] = str(time.monotonic() + timeout)
+        timeout = bounded_timeout(self.timeout, remaining)
+        timeout = max(0.01, timeout) if timeout is not None else None
+        environment["LAB_CHECK_DEADLINE"] = str(time.monotonic() + timeout if timeout is not None else float("inf"))
+        if self.timeout is None:
+            environment["LAB_SUBMISSION_TIMEOUT_SECONDS"] = "none"
         environment["LAB_SUBMISSION_WORKER"] = str((self.runtime / "submission_worker.py").resolve())
         nonce = secrets.token_hex(24)
         receipt_path = self.root / f"{self.counter:03d}-{kind}.receipt.json"

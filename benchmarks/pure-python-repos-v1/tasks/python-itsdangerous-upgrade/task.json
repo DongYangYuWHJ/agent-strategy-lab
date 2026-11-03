@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "python-itsdangerous-upgrade",
+  "description": "在真实 ItsDangerous 代码库中支持密钥轮换及一致的时间有效性验证，贯通签名器、序列化器、时间签名和 URL-safe 组合；保持已有单密钥数据可验证。修改包本身，不能修改只读适配器或验收。 阅读 LAB_TASK.md 和只读 app.py，保持其外部协议。",
+  "acceptance": [
+    "Signer、Serializer、TimedSerializer、URLSafeSerializer、URLSafeTimedSerializer 的 secret_key 接受一个密钥，或按旧到新排列的非空密钥列表。新签名只使用最后一个密钥，验签接受列表中任意密钥；单密钥调用保持兼容。",
+    "旧密钥单独生成的 token 在轮换列表中可读；轮换生成的新 token 仅最新密钥可验证。直接 Signer 与四种 Serializer 都遵循该规则，支持 JSON 标量、列表、嵌套对象和可压缩长字符串。",
+    "salt 必须继续隔离用途；错误密钥、错误 salt、被篡改签名不得通过验证。不得禁用或绕过签名检查。",
+    "signer_kwargs 指定新摘要算法时，fallback_signers 允许仅在验证时回退旧摘要与任意旧密钥；新签名仍使用新摘要与最新密钥。显式 fallback_signers=[] 不接受旧摘要签名。",
+    "时间验证使用 now-signed_at；给定 max_age 时，年龄等于上限有效，大于上限或年龄为负均抛 SignatureExpired；max_age=None 时不限制年龄。max_age=0 只能接受同一秒。",
+    "return_timestamp=True 返回的时间戳，以及 SignatureExpired.date_signed，都必须是 UTC aware datetime，并表示原签名时间。时间行为在 TimedSerializer 和 URLSafeTimedSerializer 中一致，可与轮换和摘要回退组合。app.py 用虚拟时钟检查边界，不需要等待或网络。"
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "src/itsdangerous/__init__.py",
+    "src/itsdangerous/_compat.py",
+    "src/itsdangerous/_json.py",
+    "src/itsdangerous/encoding.py",
+    "src/itsdangerous/exc.py",
+    "src/itsdangerous/jws.py",
+    "src/itsdangerous/serializer.py",
+    "src/itsdangerous/signer.py",
+    "src/itsdangerous/timed.py",
+    "src/itsdangerous/url_safe.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

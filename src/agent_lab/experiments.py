@@ -60,7 +60,8 @@ def load_experiment(path, catalog, model_filter=None):
     kinds = {model.provider == "mock" for model in models}
     if len(kinds) != 1:
         raise ValueError("Use separate batches for simulated and live experiments")
-    return tasks, models, Limits(**raw.get("limits", {})), repeats, seed, money(raw["batch_budget_usd"])
+    budget = raw["batch_budget_usd"]
+    return tasks, models, Limits(**raw.get("limits", {})), repeats, seed, money(budget) if budget is not None else None
 
 
 def run_batch(path, catalog, output, model_filter=None, resume=False):
@@ -82,7 +83,7 @@ def run_batch(path, catalog, output, model_filter=None, resume=False):
                 "task_manifests": {task.id: str(task.manifest_path) for task in tasks},
                 "models": [asdict(model) for model in models], "limits": asdict(limits),
                 "token_counting": token_counters,
-                "batch_budget_usd": str(batch_budget), "strategy": "single_agent", "plan": plan,
+                "batch_budget_usd": str(batch_budget) if batch_budget is not None else None, "strategy": "single_agent", "plan": plan,
                 "system_prompt": SYSTEM, "tools": TOOLS, "seed": seed}
     output = output.resolve()
     manifest_path = output / "batch.json"
@@ -126,14 +127,17 @@ def run_batch(path, catalog, output, model_filter=None, resume=False):
                 manifest["status"] = "usage_unknown"
                 break
             spent = sum((money(item["accounting"]["estimated_cost_usd"]) for item in existing), Decimal(0))
-            remaining_budget = batch_budget - spent
-            if remaining_budget <= 0:
+            remaining_budget = batch_budget - spent if batch_budget is not None else None
+            if remaining_budget is not None and remaining_budget <= 0:
                 manifest["status"] = "batch_budget_limit"
                 break
             task = task_map[cell["task"]]
             if task_fingerprint(task) != identity["task_fingerprints"][task.id]:
                 raise ValueError("Task source or checks changed during batch")
-            effective = replace(limits, max_cost_usd=str(min(money(limits.max_cost_usd), remaining_budget)))
+            fee_bounds = ([money(limits.max_cost_usd)] if limits.max_cost_usd is not None else [])
+            if remaining_budget is not None:
+                fee_bounds.append(remaining_budget)
+            effective = replace(limits, max_cost_usd=str(min(fee_bounds)) if fee_bounds else None)
             manifest["inflight"] = {cell["cell"]: cell}
             save_json(manifest_path, manifest)
             result = run_task(task, model_map[cell["model"]], effective, output / "runs")

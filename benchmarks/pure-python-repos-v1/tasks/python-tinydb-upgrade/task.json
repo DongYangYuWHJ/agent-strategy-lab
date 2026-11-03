@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "python-tinydb-upgrade",
+  "description": "在真实 TinyDB 代码库中扩展显式文档 ID、批量读取和可组合查询，保持查询缓存、存储和多表行为一致。不要只在适配器中实现一个新数据库；必须修改 tinydb 包本身。 阅读 LAB_TASK.md 和只读 app.py，保持其外部协议。",
+  "acceptance": [
+    "Document(data, doc_id=ID) 在 insert/insert_multiple 中使用指定整数 ID；自动 ID 按当前最大 ID 加一分配，显式 ID 后不能碰撞。重复 ID 抛 ValueError，原文档不覆盖；空表从1开始。批量输入可为迭代器，返回各文档 ID。",
+    "upsert(Document(...)) 不要求查询条件：存在时合并字段，不存在时按该 ID 插入；返回影响的 ID 列表。原 upsert(mapping, query)、普通 insert/update/remove/get/search 保持可用。",
+    "get(doc_ids=[...]) 返回实际存在的 Document 列表，按表内存储顺序排列，忽略重复和缺失 ID，空列表返回空列表。单 ID get 不变。不同表的 ID 空间与数据独立。",
+    "Query().fragment(mapping) 与嵌套字段 fragment 匹配给出的键值子集；缺失字段不匹配。Query().noop() 永远为真，可与 AND/OR/NOT 组合。现有 eq/ge/exists/one_of 查询保持可用。",
+    "Query.field.map(fn) 将函数加入访问路径后再比较；不存在或不适用的字段不匹配。含可变函数的查询不得复用过时缓存：同一 Query 的闭包状态改变后搜索应重新求值。普通查询在 update/remove/upsert 后也不得返回旧结果。",
+    "以上行为在 MemoryStorage、JSONStorage 和 CachingMiddleware(JSONStorage) 一致；关闭并重开文件数据库保留数据。Document 元数据不能写进用户字段。read-only app.py 定义输入操作与输出格式，tests_lab 公开场景可阅读；不要求特定内部实现。"
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "tinydb/__init__.py",
+    "tinydb/database.py",
+    "tinydb/middlewares.py",
+    "tinydb/mypy_plugin.py",
+    "tinydb/operations.py",
+    "tinydb/queries.py",
+    "tinydb/storages.py",
+    "tinydb/table.py",
+    "tinydb/utils.py",
+    "tinydb/version.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

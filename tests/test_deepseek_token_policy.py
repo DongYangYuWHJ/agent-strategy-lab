@@ -33,7 +33,7 @@ class DeepSeekTokenPolicyTests(unittest.TestCase):
                 self.assertEqual(model.output_reserve_tokens, reserve)
 
     def test_other_providers_cannot_disable_token_policy(self):
-        for provider in ["openai", "anthropic", "mock"]:
+        for provider in ["anthropic", "mock"]:
             with self.subTest(provider=provider), self.assertRaises(ValueError):
                 replace(uncapped(), provider=provider)
         with self.assertRaises(ValueError):

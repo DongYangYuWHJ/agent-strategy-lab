@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "source": "https://github.com/scaleapi/SWE-bench_Pro-os",
+  "revision": "66f92766bba642462d4bbe5479e83f91f9211862",
+  "archive_sha256": "317967aae26b7d475dc34ee2350981bf4e2eaf4b34dbf4833095ac2fee8f0fc1",
+  "split": "development",
+  "status": "intake_only_not_runner_compatible",
+  "selection_policy": "Manual engineering-scope selection from all 642 tasks; multiple modules and functional/regression scope, not model failures or algorithm difficulty. Reference stats are curator-only proxies, not minimum edit requirements. No held-out evaluation split yet.",
+  "tasks": [
+    {
+      "id": "instance_ansible__ansible-949c503f2ef4b2c5d668af0492a5c0db1ab86140-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "title": "Ansible server configuration resolution",
+      "category": "configuration",
+      "reference_code_file_count": 4,
+      "reference_all_file_count": 4,
+      "reference_changed_lines": 230,
+      "instruction_sha256": "1e49c88ceef94406fb948d71f6a17ea64f7790920d2206918660c27920628f1a"
+    },
+    {
+      "id": "instance_internetarchive__openlibrary-630221ab686c64e75a2ce253c893c033e4814b2e-v93c53c13d5f9b383ebb411ee7750b49dcd1a34c6",
+      "title": "Open Library book award nomination backend",
+      "category": "feature",
+      "reference_code_file_count": 5,
+      "reference_all_file_count": 6,
+      "reference_changed_lines": 328,
+      "instruction_sha256": "d0b2c469892300c54bd636349a91cad587620c505ce6883e6502b4a9d6e5bad5"
+    },
+    {
+      "id": "instance_internetarchive__openlibrary-111347e9583372e8ef91c82e0612ea437ae3a9c9-v2d9a6c849c60ed19fd0858ce9e40b7cc8e097e59",
+      "title": "Open Library MARC XML/Binary parsing parity",
+      "category": "compatibility",
+      "reference_code_file_count": 5,
+      "reference_all_file_count": 5,
+      "reference_changed_lines": 143,
+      "instruction_sha256": "0cada5046fad3c5e94c55546a6cdb998db409595e9c33f005504182269cae04a"
+    },
+    {
+      "id": "instance_flipt-io__flipt-2ca5dfb3513e4e786d2b037075617cccc286d5c3",
+      "title": "Flipt multiple metrics exporters",
+      "category": "feature",
+      "reference_code_file_count": 4,
+      "reference_all_file_count": 9,
+      "reference_changed_lines": 272,
+      "instruction_sha256": "bb81e79521bc3cbd9271c6db7e2c8cb4617336a0193103e438f52503d2d18021"
+    },
+    {
+      "id": "instance_flipt-io__flipt-cd18e54a0371fa222304742c6312e9ac37ea86c1",
+      "title": "Flipt default configuration and CUE schema parity",
+      "category": "configuration",
+      "reference_code_file_count": 4,
+      "reference_all_file_count": 6,
+      "reference_changed_lines": 239,
+      "instruction_sha256": "2309d9d2d04455c1575a2aa75311dfeab1b036706af5bb3539b0287a48a77153"
+    },
+    {
+      "id": "instance_navidrome__navidrome-55730514ea59d5f1d0b8e3f8745569c29bdbf7b4",
+      "title": "Navidrome database backup and restore",
+      "category": "feature",
+      "reference_code_file_count": 5,
+      "reference_all_file_count": 5,
+      "reference_changed_lines": 454,
+      "instruction_sha256": "6d67259be8455dce24942df8387916de51822bef1c1d7ccb44dbff7db350e65c"
+    },
+    {
+      "id": "instance_NodeBB__NodeBB-a5afad27e52fd336163063ba40dcadc80233ae10-vd59a5728dfc977f44533186ace531248c2917516",
+      "title": "NodeBB chat privacy allow/deny lists",
+      "category": "feature",
+      "reference_code_file_count": 6,
+      "reference_all_file_count": 12,
+      "reference_changed_lines": 188,
+      "instruction_sha256": "95b6c3079596ea9534b6db5784d2cc937c3c4ea1df7d0bbf2c941798c8e5d92c"
+    },
+    {
+      "id": "instance_NodeBB__NodeBB-04998908ba6721d64eba79ae3b65a351dcfbc5b5-vnan",
+      "title": "NodeBB email confirmation across database backends",
+      "category": "bugfix",
+      "reference_code_file_count": 7,
+      "reference_all_file_count": 11,
+      "reference_changed_lines": 151,
+      "instruction_sha256": "d6945e39ea44bd726bda06191c4617a9320621283f355f0c3a4f8497f1875713"
+    }
+  ]
+}

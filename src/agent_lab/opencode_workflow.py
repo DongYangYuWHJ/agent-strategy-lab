@@ -38,9 +38,7 @@ def request(url, path, password, payload=None, method=None, timeout=10):
     req = urllib.request.Request(url + path, data=data, headers=headers, method=method)
     try:
         with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=timeout) as response:
-            body = response.read(32 * 1024 * 1024 + 1)
-            if len(body) > 32 * 1024 * 1024:
-                raise ValueError("OpenCode response too large")
+            body = response.read()
             return json.loads(body) if body else None
     except urllib.error.HTTPError as exc:
         # Local server errors cannot include upstream credentials; retain bounded diagnostics.
@@ -137,28 +135,40 @@ def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
     packages = {"deepseek": "openai-compatible", "openai": "openai/responses", "anthropic": "anthropic"}
     for model in models:
         entry = {"modelID": model.model, "name": model.id,
-                 "limit": {"context": 1048576 if model.provider == "deepseek" and model.max_output_tokens is None else 100000,
+                 "limit": {"context": model.context_window or (1048576 if model.provider == "deepseek" and model.max_output_tokens is None else 100000),
                            "input": limits.max_estimated_input_tokens, "output": model.output_reserve_tokens},
                  "capabilities": {"tools": True, "input": ["text"], "output": ["text"],
                                   "reasoning": {"supported": model.reasoning_effort != "none"}}}
         if model.provider == "deepseek":
             entry["compatibility"] = {"reasoningField": "reasoning_content"}
+        if entry["limit"]["input"] is None:
+            del entry["limit"]["input"]
         providers["lab-" + model.id] = {"name": "Lab " + model.id,
             "package": "@opencode/ai/providers/" + packages[model.provider],
             "settings": {"apiKey": "local-gateway", "baseURL": gateway_url + "/provider/" + model.id,
-                         "timeout": (limits.request_timeout_seconds + 10) * 1000, "encoding": "none"},
+                         "timeout": (limits.request_timeout_seconds + 10) * 1000 if limits.request_timeout_seconds is not None else False, "encoding": "none"},
             "models": {model.id: entry}}
+        if limits.request_timeout_seconds is None:
+            providers["lab-" + model.id]["settings"].update(headerTimeout=False, chunkTimeout=False)
     ids = role_ids(strategy)
     main = ids["solo"] if strategy == "single_agent" else ids["planner"]
     def agent(role, model, mode):
         permissions = role_permissions(role, strategy)
-        return {"description": "Bounded workflow " + role, "mode": mode, "model": "lab-" + model.id + "/" + model.id,
+        result = {"description": "Lab workflow " + role, "mode": mode, "model": "lab-" + model.id + "/" + model.id,
                 "system": role_prompts[role],
-                "steps": limits.max_calls, "permissions": permissions}
+                "permissions": permissions}
+        if limits.max_calls is not None:
+            result["steps"] = limits.max_calls
+        return result
     executor_mode = "primary" if strategy == "planner_handoff" else "subagent"
     agents = ({main: agent("solo", models[0], "primary")} if strategy == "single_agent" else
               {main: agent("planner", models[0], "primary"), ids["worker"]: agent("worker", models[1], executor_mode)})
     roles = ["solo"] if strategy == "single_agent" else ["planner", "worker"]
+    tool_timeouts = {"startup": 10000, "catalog": 10000}
+    # OpenCode 2.0.32 accepts positive execution milliseconds only. Omission
+    # removes our experiment deadline but retains its native 12-hour default.
+    if limits.check_timeout_seconds is not None:
+        tool_timeouts["execution"] = (limits.check_timeout_seconds + 10) * 1000
     return {"model": "lab-" + models[0].id + "/" + models[0].id, "default_agent": main,
             "snapshots": False, "compaction": {"auto": False},
             "permissions": [{"action": "*", "resource": "*", "effect": "deny"}],
@@ -167,7 +177,7 @@ def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
             "agents": agents, "providers": providers,
             "mcp": {"servers": {"lab_" + role: {"type": "remote", "url": gateway_url + "/mcp/" + role,
                 "oauth": False, "codemode": False,
-                "timeout": {"startup": 10000, "catalog": 10000, "execution": (limits.check_timeout_seconds + 10) * 1000}}
+                "timeout": tool_timeouts}
                 for role in roles}}}
 
 

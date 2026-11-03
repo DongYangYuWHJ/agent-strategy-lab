@@ -1,0 +1,10 @@
+import json
+import unittest
+from app import run
+CASES = json.loads('[{"request": {"steps": [{"op": "insert", "data": {"n": 1}, "table": "_default"}, {"op": "export"}], "backend": "memory"}, "expected": {"results": [1, {"version": 1, "tables": {"_default": [{"id": 1, "data": {"n": 1}}]}}], "state": {"_default": [{"id": 1, "data": {"n": 1}}]}}, "group": "export"}, {"request": {"steps": [{"op": "insert", "data": {"n": 1}, "table": "_default"}, {"op": "restore", "snapshot": {"version": 1, "tables": {"_default": [{"id": 5, "data": {"n": 5}}]}}}, {"op": "all"}], "backend": "memory"}, "expected": {"results": [1, {"tables": 1, "documents": 1}, [{"id": 5, "data": {"n": 5}}]], "state": {"_default": [{"id": 5, "data": {"n": 5}}]}}, "group": "replace"}, {"request": {"steps": [{"op": "insert", "data": {"n": 1}, "table": "_default"}, {"op": "restore", "snapshot": {"version": 1, "tables": {"_default": [{"id": 5, "data": {"n": 5}}]}}, "dry_run": true}], "backend": "memory"}, "expected": {"results": [1, {"tables": 1, "documents": 1}], "state": {"_default": [{"id": 1, "data": {"n": 1}}]}}, "group": "dry-run"}, {"request": {"steps": [{"op": "insert", "data": {"n": 2}, "table": "_default"}, {"op": "remove", "ids": [1]}, {"op": "insert", "data": {"n": 3}, "table": "_default"}], "backend": "memory"}, "expected": {"results": [1, [1], 2], "state": {"_default": [{"id": 2, "data": {"n": 3}}]}}, "group": "regression"}]')
+
+class PublicScenarios(unittest.TestCase):
+    def test_contract(self):
+        for item in CASES:
+            with self.subTest(group=item['group']):
+                self.assertEqual(run(item['request']), item['expected'])

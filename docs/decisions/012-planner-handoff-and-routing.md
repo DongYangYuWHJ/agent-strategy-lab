@@ -37,6 +37,12 @@
 
 已新增 [六个原创仓库任务](../repo-tasks.md)，局部修复／跨文件修改／问题定位各两个，独立验收与 25 组离线正负对照审计通过。首轮 DeepSeek／Sol 十二项记录已完成：Sol 正式 6/6，DeepSeek 正式 4/6，另两例有传输／验收计时异常。四个干净配对均通过，当前仍未显示清晰质量区分；费用差异及不完整用量的边界见任务说明，不将异常当作模型能力失败。
 
+2026-11-01：为增加工程规模且避免配置 Linux／Docker，新增 [TinyDB／ItsDangerous 两个真实纯 Python 仓库升级任务](../pure-python-repo-tasks.md)，采用固定历史源码与自定升级合同；不是官方 issue 基准。8 组验收对照、148 项回归及本机固定回复流程检查通过。Luna／DeepSeek 四项线上记录均在验收前触发累计 Token、单次输入或调用限制，总估算 $0.085419013，用量完整；未调参重跑，暂不据此比较完成质量。八个 SWE-bench Pro 候选继续保留，尚未接入。
+
+随后按用户要求临时取消 Luna／DeepSeek 的本地生成额度，采用 null 配置及独立模型 catalog；经用户确认仅保留整批 $2 预算。155 项回归和 40 步固定回复流程通过后，四项线上测试全部完成并通过最终验收，用量完整，总估算 $0.187572820。两题合计 Luna $0.043641340、DeepSeek $0.143931480，两者各 64 次生成；费用按冻结费率、DeepSeek 峰值估算。仍未区分最终通过率，之后需跨项目扩充任务与重复对照。[报告](../../artifacts/python-repo-comparison-cost-guarded-live-01/comparison.md)。
+
 证据：[三组同批对照](../../artifacts/solo-handoff-comparison-20261030-01/comparison.md)、[DeepSeek 单体中难题重测](../../artifacts/deepseek-no-token-cap-live-20261030-01/review.md)、[DeepSeek max→low 与单体比较](../../artifacts/deepseek-handoff-live-20261031-01/comparison.md)。
+
+后续任务集校准、benchmark 调研及具体措施见 [013：任务区分度与任务集校准](013-task-discrimination-and-calibration.md)。
 
 依据：[OpenCode V2 Agent 与模型选择](https://opencode.ai/v2/docs/agents/)、[会话切换扩展接口](https://opencode.ai/v2/docs/build/plugins/)。文档描述能力不等于本机版本已验证。

@@ -50,6 +50,8 @@ py -3 -m venv .venv
 
 ## 第一轮真实模型初筛
 
+2026-11-02 新增 [九个纯 Python 工程任务候选](docs/task-calibration.md)，覆盖 TinyDB、ItsDangerous、Cachetools 的六个专项和三个组合需求。现有 Windows＋Python 即可执行，无需额外服务；39 组离线对照通过。首轮 18 项付费筛查已完成：DeepSeek 8/9、Luna 5/9，共估算 $0.686221370；每格一次，尚未作稳定性验证或 Sol 对照。配置入口为 `configs/workflow-python-calibration.json`。
+
 已加入一个独立的 [LiveCodeBench 单 Agent 任务集](docs/livecodebench.md)：easy、medium、hard 各两道，保留 19 个公开用例和 240 个隐藏用例。配置为 `configs/livecodebench-single.json`，不改变下面原有三道演示任务的默认清单。可以先用 `validate`、`list-tasks` 与 `audit-livecodebench` 离线检查；这些检查命令不调用模型。
 
 扩充版位于 `benchmarks/livecodebench-v2/`：共 18 题，各难度六题，分为原六题校准、新六题调参与新六题保留评估。`configs/livecodebench-development.json` 选择校准＋调参的 12 题；`configs/livecodebench-holdout.json` 只选择六道保留题。新增任务未运行付费模型实验。单次输出额度在 `configs/models.json` 的各模型 `max_output_tokens` 字段调整；整题累计额度在实验配置的 `limits.max_total_tokens` 调整，详见上述说明。

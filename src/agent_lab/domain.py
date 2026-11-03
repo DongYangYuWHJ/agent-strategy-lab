@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 
@@ -53,32 +54,40 @@ def relative_path(value: str) -> str:
 
 @dataclass(frozen=True)
 class Limits:
-    max_calls: int = 12
-    max_tool_steps: int = 30
-    max_repairs: int = 2
-    max_no_progress: int = 2
-    max_total_tokens: int = 100000
-    max_request_bytes: int = 1048576
-    max_estimated_input_tokens: int = 64000
-    max_seconds: int = 180
-    request_timeout_seconds: int = 300
-    token_count_timeout_seconds: int = 30
+    max_calls: int | None = 12
+    max_tool_steps: int | None = 30
+    max_repairs: int | None = 2
+    max_no_progress: int | None = 2
+    max_total_tokens: int | None = 100000
+    max_request_bytes: int | None = 1048576
+    max_estimated_input_tokens: int | None = 64000
+    max_seconds: int | None = 180
+    request_timeout_seconds: int | None = 300
+    token_count_timeout_seconds: int | None = 30
     token_count_margin: int = 256
-    check_timeout_seconds: int = 15
-    max_cost_usd: str = "2.00"
+    check_timeout_seconds: int | None = 15
+    max_cost_usd: str | None = "2.00"
 
     def __post_init__(self):
         for name, value in asdict(self).items():
+            if value is None and name != "token_count_margin":
+                continue
             if name == "max_cost_usd":
                 money(value)
             elif type(value) is not int or value < (0 if name == "max_repairs" else 1):
                 raise ValueError(f"Invalid limit: {name}")
         # Transport size and estimated model input are separate limits: encrypted
         # continuation state can be much larger than the tokens it represents.
-        if self.max_request_bytes > 1048576:
+        if self.max_request_bytes is not None and self.max_request_bytes > 1048576:
             raise ValueError("max_request_bytes must be <= 1048576")
-        if self.max_estimated_input_tokens > 64000:
-            raise ValueError("max_estimated_input_tokens must be <= 64000; long-context pricing is not implemented")
+        if self.max_estimated_input_tokens is not None and self.max_estimated_input_tokens > 64000:
+            raise ValueError("Finite max_estimated_input_tokens must be <= 64000; use null to disable the local input gate")
+
+
+def bounded_timeout(*values):
+    """None means no deadline; never pass infinity to OS timeout APIs."""
+    finite = [value for value in values if value is not None and math.isfinite(value)]
+    return min(finite) if finite else None
 
 
 @dataclass(frozen=True)
@@ -89,10 +98,26 @@ class Pricing:
     cache_write: str = "0"
     verified_on: str = ""
     source: str = ""
+    long_context_threshold: int | None = None
+    long_context: dict | None = None
 
     def __post_init__(self):
         for value in (self.input, self.output, self.cached_input, self.cache_write):
             money(value)
+        if (self.long_context_threshold is None) != (self.long_context is None):
+            raise ValueError("Long-context threshold and rates must be configured together")
+        if self.long_context is not None:
+            if type(self.long_context_threshold) is not int or self.long_context_threshold < 1:
+                raise ValueError("Invalid long-context threshold")
+            if set(self.long_context) != {"input", "output", "cached_input", "cache_write"}:
+                raise ValueError("Long-context pricing needs all four rates")
+            for value in self.long_context.values():
+                money(value)
+
+    def for_input(self, tokens):
+        if self.long_context_threshold is not None and tokens > self.long_context_threshold:
+            return Pricing(**self.long_context)
+        return self
 
 
 @dataclass(frozen=True)
@@ -106,17 +131,24 @@ class Model:
     mock_behavior: str = "pass"
     token_counting: str = "estimate"
     enforce_total_token_limit: bool = True
+    context_window: int | None = None
+    service_output_tokens: int | None = None
 
     def __post_init__(self):
         safe_id(self.id)
         if self.provider not in {"mock", "openai", "deepseek", "anthropic"}:
             raise ValueError("Unsupported provider")
-        if not self.model or (self.max_output_tokens is None and self.provider != "deepseek") or (
+        if not self.model or (self.max_output_tokens is None and self.provider not in {"deepseek", "openai"}) or (
                 self.max_output_tokens is not None and
                 (type(self.max_output_tokens) is not int or not 16 <= self.max_output_tokens <= 32768)):
             raise ValueError("Invalid model or output limit")
-        if type(self.enforce_total_token_limit) is not bool or (not self.enforce_total_token_limit and self.provider != "deepseek"):
-            raise ValueError("Only DeepSeek supports disabling the local total Token limit")
+        if type(self.enforce_total_token_limit) is not bool or (not self.enforce_total_token_limit and self.provider not in {"deepseek", "openai"}):
+            raise ValueError("Only DeepSeek/OpenAI support disabling the local total Token limit")
+        for value in (self.context_window, self.service_output_tokens):
+            if value is not None and (type(value) is not int or value < 1):
+                raise ValueError("Invalid provider capability metadata")
+        if self.provider == "openai" and self.max_output_tokens is None and self.service_output_tokens is None:
+            raise ValueError("Uncapped OpenAI output requires documented service_output_tokens metadata")
         if self.reasoning_effort not in {"none", "low", "medium", "high", "xhigh", "max"}:
             raise ValueError("Invalid reasoning_effort")
         if self.provider == "openai" and self.model in {"gpt-6-astra", "gpt-6.1-sol"} and self.reasoning_effort == "none":
@@ -141,6 +173,8 @@ class Model:
         """
         if self.max_output_tokens is not None:
             return self.max_output_tokens
+        if self.service_output_tokens is not None:
+            return self.service_output_tokens
         return 8192 if self.reasoning_effort == "none" else 131072 if self.reasoning_effort == "max" else 65536
 
 

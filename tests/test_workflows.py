@@ -42,6 +42,10 @@ class ScriptedSession:
                 "name": "write_file", "arguments": {"path": "bounds.py", "content": "wrong"}}})
             if not reply["isError"]:
                 raise AssertionError("Planning writes must be denied")
+            reply = g.mcp("solo", {"id": 3, "method": "tools/call", "params": {
+                "name": "edit_file", "arguments": {"path": "bounds.py", "old_text": "def", "new_text": "bad"}}})
+            if not reply["isError"]:
+                raise AssertionError("Planning literal edits must be denied")
         if g.turn == "implement":
             task = Task.load(ROOT / "tickets/clamp-boundaries/task.json")
             replay = read_json(task.manifest_path.parent / "replay.json")

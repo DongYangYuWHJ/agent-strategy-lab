@@ -13,7 +13,7 @@ import threading
 import time
 import urllib.request
 from .accounting import Ledger, StopRun
-from .domain import save_json, ToolCall
+from .domain import save_json, ToolCall, bounded_timeout
 from .providers import make_provider, NoRedirect, ProviderError
 from .token_counting import TokenCountError
 from .tools import TOOLS, execute
@@ -27,7 +27,7 @@ def role_tool_definitions(role):
     if role not in {"solo", "planner", "worker"}:
         raise ValueError("Unknown experiment role")
     return [tool for tool in [*TOOLS, CLARIFY]
-            if tool["name"] != "submit" and (role != "planner" or tool["name"] != "write_file")]
+            if tool["name"] != "submit" and (role != "planner" or tool["name"] not in {"write_file", "edit_file"})]
 
 
 def stream_result(provider, events):
@@ -70,7 +70,7 @@ def forward_stream(provider, payload, timeout):
     request = urllib.request.Request(endpoints[provider.model.provider],
         data=json.dumps(payload, ensure_ascii=False).encode(),
         headers={"Content-Type": "application/json", **headers}, method="POST")
-    deadline = time.monotonic() + timeout
+    deadline = time.monotonic() + timeout if timeout is not None else float("inf")
     chunks = []
     try:
         with urllib.request.build_opener(NoRedirect()).open(request, timeout=timeout) as response:
@@ -81,7 +81,7 @@ def forward_stream(provider, payload, timeout):
                 if not chunk:
                     break
                 chunks.append(chunk)
-                if sum(map(len, chunks)) > 16 * 1024 * 1024:
+                if provider.model.max_output_tokens is not None and sum(map(len, chunks)) > 16 * 1024 * 1024:
                     raise ValueError("Response too large")
         body = b"".join(chunks)
         events = []
@@ -112,6 +112,8 @@ class Gateway:
         self.secret = secrets.token_urlsafe(24)
 
     def remaining(self):
+        if self.limits.max_seconds is None:
+            return float("inf")
         left = self.limits.max_seconds - (time.monotonic() - self.started)
         if left <= 0:
             raise StopRun("time_limit")
@@ -140,7 +142,11 @@ class Gateway:
             # The catalog, not OpenCode defaults, owns generation parameters.
             payload["stream"] = True
             if model.provider == "openai":
-                payload["max_output_tokens"] = model.max_output_tokens
+                if model.max_output_tokens is None:
+                    for key in ("max_output_tokens", "max_tokens", "max_completion_tokens"):
+                        payload.pop(key, None)
+                else:
+                    payload["max_output_tokens"] = model.max_output_tokens
                 payload["reasoning"] = {"effort": model.reasoning_effort}
                 payload["store"] = False
                 payload["include"] = ["reasoning.encrypted_content"]
@@ -168,11 +174,11 @@ class Gateway:
                     payload.setdefault("system", "")
                     payload.setdefault("tools", [])
             encoded = json.dumps(payload, ensure_ascii=False).encode()
-            if len(encoded) > self.limits.max_request_bytes:
+            if self.limits.max_request_bytes is not None and len(encoded) > self.limits.max_request_bytes:
                 raise StopRun("request_size_limit")
             count = None
             if model.token_counting == "model":
-                count = provider.count_input_tokens(payload, min(self.remaining(), self.limits.token_count_timeout_seconds))
+                count = provider.count_input_tokens(payload, bounded_timeout(self.remaining(), self.limits.token_count_timeout_seconds))
                 estimate = count + self.limits.token_count_margin
             else:
                 # A transparent gateway has no Provider.accept token allowance
@@ -185,7 +191,7 @@ class Gateway:
                                 request_bytes=len(encoded), estimated_input_tokens=estimate,
                                 estimated_reserve_usd=str(reservation))
             try:
-                body, raw = forward_stream(provider, payload, min(self.remaining(), self.limits.request_timeout_seconds))
+                body, raw = forward_stream(provider, payload, bounded_timeout(self.remaining(), self.limits.request_timeout_seconds))
                 save_json(self.directory / "calls" / f"{index:03d}-response.json", raw)
                 (self.directory / "calls" / f"{index:03d}-response.sse").write_bytes(body)
                 usage = provider.usage(raw)
@@ -203,9 +209,12 @@ class Gateway:
             if ((model.provider == "deepseek" and raw["choices"][0]["finish_reason"] == "length")
                     or (model.provider == "openai" and raw.get("status") != "completed")
                     or (model.provider == "anthropic" and raw.get("stop_reason") == "max_tokens")):
-                if model.provider == "deepseek" and model.max_output_tokens is None:
+                length_stop = (model.provider == "deepseek" and raw["choices"][0].get("finish_reason") == "length"
+                               or model.provider == "openai" and (raw.get("incomplete_details") or {}).get("reason") == "max_output_tokens"
+                               or model.provider == "anthropic" and raw.get("stop_reason") == "max_tokens")
+                if model.max_output_tokens is None and length_stop:
                     raise StopRun("provider_length_limit")
-                raise StopRun("output_token_limit" if usage.output_tokens >= model.max_output_tokens else "incomplete_model_response")
+                raise StopRun("output_token_limit" if model.max_output_tokens is not None and usage.output_tokens >= model.max_output_tokens else "incomplete_model_response")
             # Admit all tools, including OpenCode's native subagent handoffs,
             # before releasing model output. MCP execution is not counted twice.
             for _ in range(raw.get("_lab_tool_calls", 0)):
@@ -236,7 +245,7 @@ class Gateway:
                                     question=str(call.arguments.get("question", ""))[:2000])
                 raise StopRun("needs_user_input")
             try:
-                if call.name == "write_file" and (not self.allow_write or role == "planner"):
+                if call.name in {"write_file", "edit_file"} and (not self.allow_write or role == "planner"):
                     raise ValueError("Writes are disabled for this turn/role")
                 result = execute(call, self.workspace, self.checks, self.remaining())
                 self.workspace.verify_immutable()
@@ -272,7 +281,7 @@ def serve_gateway(gateway):
                 return self.reply(403)
             try:
                 size = int(self.headers.get("Content-Length", "0"))
-                if not 0 < size <= gateway.limits.max_request_bytes:
+                if size <= 0 or (gateway.limits.max_request_bytes is not None and size > gateway.limits.max_request_bytes):
                     raise StopRun("request_size_limit")
                 payload = json.loads(self.rfile.read(size))
                 if len(parts) == 3 and parts[1] == "mcp" and parts[2] in {"solo", "planner", "worker"}:

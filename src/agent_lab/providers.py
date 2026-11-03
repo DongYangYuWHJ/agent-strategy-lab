@@ -92,11 +92,14 @@ class OpenAIProvider(Provider):
         self._api_key = require_credential("openai")
 
     def prepare(self):
-        return {"model": self.model.model, "instructions": self.system, "input": self.messages,
+        payload = {"model": self.model.model, "instructions": self.system, "input": self.messages,
                 "tools": [{"type": "function", "strict": True, **tool} for tool in self.tools],
                 "max_output_tokens": self.model.max_output_tokens,
                 "reasoning": {"effort": self.model.reasoning_effort}, "store": False,
                 "include": ["reasoning.encrypted_content"]}
+        if self.model.max_output_tokens is None:
+            payload.pop("max_output_tokens")
+        return payload
 
     def send(self, payload, timeout):
         return request_json("https://api.openai.com/v1/responses", payload,
@@ -141,7 +144,7 @@ class OpenAIProvider(Provider):
         if any(item.get("type") == "reasoning" and item.get("encrypted_content") for item in items):
             # Normal execution validates usage before accepting a response. The
             # fallback also makes direct protocol/fixture use conservative.
-            output_tokens = (raw.get("usage") or {}).get("output_tokens", self.model.max_output_tokens)
+            output_tokens = (raw.get("usage") or {}).get("output_tokens", self.model.output_reserve_tokens)
             if type(output_tokens) is not int or output_tokens < 0:
                 raise ValueError("Invalid encrypted continuation token allowance")
             self._encrypted_output_token_allowance += output_tokens
