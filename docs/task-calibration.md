@@ -80,3 +80,27 @@
 这轮证明候选任务可以暴露完整交付中的遗漏，不再全部满分；**没有证明稳定模型排名或 Sol 的优势**。专项与组合需求重叠，不能把四项失败当作四种独立缺陷。DeepSeek 的签名组合通过、迁移专项却失败，同样说明需要重复验证，不能预设组合题的难度一定更高。
 
 完整证据：[比较报告](../artifacts/python-calibration-live-20261102-01/comparison.md)、[分组与逐项数据](../artifacts/python-calibration-live-20261102-01/comparison.json)、[原始报告](../artifacts/python-calibration-live-20261102-01/report.md)。汇总工具为 [summarize_calibration_comparison.py](../scripts/summarize_calibration_comparison.py)，只读既有记录，不调用模型。
+
+## Sol 对照与后续：2026-11-03
+
+[Sol 单体配置](../configs/workflow-python-calibration-sol.json) 的九题首轮已完成：9/9 全通过、166 次调用、3,378,551 累计 Token，估算 $1.5406067，累计 1,148.610 秒；用量完整，无停止或付费重跑。medium 档位，本地生成与执行额度为 null，整批费用上限 $5；独立 [模型目录](../configs/models-python-calibration-sol.json) 记录服务元数据与长上下文计价，不修改前批。
+
+[三模型报告](../artifacts/python-calibration-three-models-20261103-01/comparison.md) 合并 27 项现有记录：Sol 9/9、DeepSeek 8/9、Luna 5/9。冻结的任务、四轮流程、运行器、本地额度策略和角色权限已核对一致；模型档位、费率、实际缓存、批次预算及执行顺序不同，不能称为相同推理预算或完全交错实验。
+
+后续顺序已记入 [Plan 13](decisions/013-task-discrimination-and-calibration.md)：四个固定关键任务、三模型各再独立运行两次，连同首轮（含失败）累计三次；再根据稳定性决定架构对照。重复已执行并完成下面的整理，架构测试尚未启动，当前不能声称架构省钱。
+
+## 四题重复与中断继续
+
+原重复批次完成17项后，在 Luna 签名组合的一条请求中断；1条请求响应／用量不明，未重跑、未追加隐藏评分。用户要求继续后，只完成原计划中尚未开始的6项，保留原顺序、任务、模型与编号，沿用原 $5 总预算并预留未知费用。
+
+含四题首轮共36项记录，其中35项有最终验收、1项中断：DeepSeek 11/12 全通过，Sol 10/12，Luna 3/11，Luna 另有1项缺失。仅本次新增的有效验收分别为 8/8、6/8、3/7。原五道未重复任务仍各一次，不混合分母。
+
+Sol 迁移题从首轮通过变为两次失败，DeepSeek 从首轮失败变为两次通过；这批数据没有保持首轮对 Sol 稳定性的印象。不能据此作全局排名，也不能预设更贵的 Planner 会提高可靠性。恢复时段和缓存条件变化也是成本／耗时比较的边界。
+
+新增已知费用 $2.298355854，其中继续6项为 $0.521644124；未知请求另预留 $0.067128875，仍在原 $5 上限内。完整记录见 [重复报告](../artifacts/python-calibration-repeat-live-20261103-01/repeat-comparison.md)、[机器数据](../artifacts/python-calibration-repeat-live-20261103-01/repeat-comparison.json)、[恢复记录](../artifacts/python-calibration-repeat-recovery-20261103-01/recovery.json)。缺失结果不伪装成失败或补齐，所有费用均为冻结费率估算。
+
+## Sol／Luna 架构探索
+
+[架构配置](../configs/workflow-python-architecture-sol-luna.json) 使用同四题、原四轮和模型档位，三种结构各一次，共12项。本批已全部完成、用量完整，无调参或重跑：Sol 单体3/4、$0.7759329；Luna 单体1/4、$0.061187590；Sol 规划后 Luna 接管3/4、$0.286004300。总估算 $1.123124790。
+
+交接与 Sol 的逐题分数一致，费用低约63.1%，但调用、累计 Token 和耗时更多；与 Luna 比较则提高了本轮完成数、费用也更高。迁移题仍三组都失败，不能声称完成全部需求。每格仅一次，尚待架构重复与独立评估，不将本轮当作稳定排名或最优结构证明。[本轮报告](../artifacts/python-architecture-sol-luna-live-20261103-01/architecture-comparison.md)、[Plan 13 完整解释](decisions/013-task-discrimination-and-calibration.md)。

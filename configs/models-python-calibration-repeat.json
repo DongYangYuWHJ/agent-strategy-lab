@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "notes": "Unchanged union of the exact frozen model profiles used in the first calibration batches. Repeat validation only; preserve rates, effort and unlimited local Token policies.",
+  "models": [
+    {
+      "id": "gpt-6-luna",
+      "provider": "openai",
+      "token_counting": "model",
+      "model": "gpt-6-luna",
+      "pricing": {
+        "input": "0.10",
+        "output": "0.50",
+        "cached_input": "0.01",
+        "cache_write": "0.125",
+        "verified_on": "2026-11-01",
+        "source": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+        "long_context_threshold": 272000,
+        "long_context": {
+          "input": "0.20",
+          "output": "0.75",
+          "cached_input": "0.02",
+          "cache_write": "0.25"
+        }
+      },
+      "max_output_tokens": null,
+      "reasoning_effort": "medium",
+      "enforce_total_token_limit": false,
+      "context_window": 1050000,
+      "service_output_tokens": 128000
+    },
+    {
+      "id": "deepseek-flash",
+      "provider": "deepseek",
+      "token_counting": "model",
+      "model": "deepseek-flash",
+      "pricing": {
+        "input": "0.30",
+        "output": "1.20",
+        "cached_input": "0.006",
+        "cache_write": "0",
+        "verified_on": "2026-11-01",
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "max_output_tokens": null,
+      "reasoning_effort": "low",
+      "enforce_total_token_limit": false,
+      "context_window": 1048576,
+      "service_output_tokens": 393216
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "provider": "openai",
+      "token_counting": "model",
+      "model": "gpt-6.1-sol",
+      "pricing": {
+        "input": "2.00",
+        "output": "10.00",
+        "cached_input": "0.10",
+        "cache_write": "2.50",
+        "verified_on": "2026-11-03",
+        "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "long_context_threshold": 272000,
+        "long_context": {
+          "input": "4.00",
+          "output": "15.00",
+          "cached_input": "0.20",
+          "cache_write": "5.00"
+        }
+      },
+      "max_output_tokens": null,
+      "reasoning_effort": "medium",
+      "enforce_total_token_limit": false,
+      "context_window": 1050000,
+      "service_output_tokens": 128000
+    }
+  ]
+}
