@@ -10,7 +10,7 @@ def read(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def summarize(directory):
+def summarize(directory, *, rows_only=False):
     batch = read(directory / "batch.json")
     if batch["status"] == "running" or batch["inflight"]:
         raise ValueError("Batch is still running; preserve it and wait")
@@ -61,6 +61,7 @@ def summarize(directory):
         if children:
             raise ValueError("Unexpected child session in solo/handoff comparison")
         rows.append({"cell": cell_id, "task": result["task_id"], "architecture": cell["architecture"],
+                     "repeat": cell["repeat"],
                      "strategy": architecture["strategy"], "accepted": result["accepted"], "category": category,
                      "status": result["status"], "stop_reason": result["stop_reason"],
                      "gateway_stop_reasons": [event["reason"] for event in events if event["type"] == "gateway_stopped"],
@@ -77,6 +78,8 @@ def summarize(directory):
                                                    for turn in actual},
                      "verified_selections": selections, "child_sessions": children,
                      "result_path": str((run_dir / "result.json").relative_to(directory))})
+    if rows_only:
+        return rows
     totals = {}
     for architecture in architectures:
         items = [row for row in rows if row["architecture"] == architecture]
@@ -151,6 +154,7 @@ def summarize(directory):
     (directory / "architecture-comparison.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (directory / "architecture-comparison.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(json.dumps({key: summary[key] for key in ("batch_status", "planned", "recorded", "known_estimated_cost_usd", "all_usage_complete", "architecture_totals")}, ensure_ascii=True))
+    return summary
 
 
 if __name__ == "__main__":

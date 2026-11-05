@@ -104,3 +104,13 @@ Sol 迁移题从首轮通过变为两次失败，DeepSeek 从首轮失败变为�
 [架构配置](../configs/workflow-python-architecture-sol-luna.json) 使用同四题、原四轮和模型档位，三种结构各一次，共12项。本批已全部完成、用量完整，无调参或重跑：Sol 单体3/4、$0.7759329；Luna 单体1/4、$0.061187590；Sol 规划后 Luna 接管3/4、$0.286004300。总估算 $1.123124790。
 
 交接与 Sol 的逐题分数一致，费用低约63.1%，但调用、累计 Token 和耗时更多；与 Luna 比较则提高了本轮完成数、费用也更高。迁移题仍三组都失败，不能声称完成全部需求。每格仅一次，尚待架构重复与独立评估，不将本轮当作稳定排名或最优结构证明。[本轮报告](../artifacts/python-architecture-sol-luna-live-20261103-01/architecture-comparison.md)、[Plan 13 完整解释](decisions/013-task-discrimination-and-calibration.md)。
+
+## 架构重复验证：2026-11-04
+
+每个任务×结构新增两次独立运行，保持原模型档位、四轮、工具、角色和任务，共24项；23项完成最终验收，最后一项交接在实施请求用量未知后停止，没有调参或重跑。含首轮为36项记录、35项有效验收：Sol单体9/12，Luna单体6/12，Sol→Luna为4/11，另1项环境异常。仅新增分别为6/8、5/8和1/7。
+
+首轮交接保持 Sol 质量的观察没有保持；本次交接也未稳定优于 Luna 单体。当前配置不支持“保持质量且省钱”的结论，但不足以否定所有协作架构。异常单列，不作为模型答错；即使补齐一项通过，也不能消除其他有效结果的质量差距。四题仍是相关开发子集，样本小，没有全局排名或显著性结论。
+
+新增已知估算 $2.094132550，另保留一条未知请求 $0.065781875 预留，仍在本批 $5 内；含首轮已知 $3.217257340。完整费用未明，不重新计算等质量节省比例。角色切换、规划禁写、无子会话已核对，失败不是偷偷换模型的结果。[重复报告](../artifacts/python-architecture-sol-luna-repeat-live-20261104-01/architecture-repeat-comparison.md)、[执行核对](../artifacts/python-architecture-sol-luna-repeat-live-20261104-01/architecture-repeat-verification.json)、[Plan 13](decisions/013-task-discrimination-and-calibration.md)。
+
+用户说明断网并授权继续后，仅以原配置、新会话补跑缺失的交接原子更新第3次，34/34通过，估算 $0.057765930；其他23项未重跑。现在36个预定质量位置全部有验收，Sol 9/12、Luna 6/12、交接5/12；另保留1项旧中断，共37次尝试记录。原重复批次加补跑已知 $2.151898480，未知预留 $0.065781875 仍保留，共用原 $5 上限；含首轮已知 $3.275023270。补齐后仍未保持首轮的交接质量收益。[补跑后报告](../artifacts/python-architecture-sol-luna-recovery-20261104-01/architecture-recovery-comparison.md)、[映射与预算](../artifacts/python-architecture-sol-luna-recovery-20261104-01/recovery.json)。
