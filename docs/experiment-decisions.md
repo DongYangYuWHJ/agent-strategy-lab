@@ -31,7 +31,7 @@
 | [011](decisions/011-planner-executor.md) | Planner＋Executor 四种搭配，与单 Agent 对照 | 权限已修复；三层任务 18 例完成，11 例通过，已记录分工开销 | 固定交互与总预算，核查角色调用、交接开销及停止归因 |
 | [012](decisions/012-planner-handoff-and-routing.md) | Planner 规划后退出，Executor 接管主会话；记录 Router 方向 | 已完成线上比较；当前任务质量区分度有限，优先扩展任务类型 | 同会话角色切换、成本比较与任务集区分度 |
 | [013](decisions/013-task-discrimination-and-calibration.md) | 任务区分度、benchmark 调研与任务集校准 | 网络恢复后单项补跑完成，架构36项有效验收；Sol 9/12、Luna 6/12、交接5/12，首轮质量收益未保持；旧中断及未知费用保留 | 任务区分度、可靠性、分工成本与独立评估 |
-| [014](decisions/014-planner-executor-reviewer.md) | 轨迹诊断与 Plan → Execute → Review | 已记录发现和新设计；Sol规划及只读审查、Luna实施及修正；尚未实现或测试 | 区分规划错误与落实失败、按角色隔离审查和修改、核对完整协作成本 |
+| [014](decisions/014-planner-executor-reviewer.md) | 轨迹诊断与 Plan → Execute → Review | 正式16项完成，每格一次；Sol与新架构4/4、Luna1/4、旧交接3/4；新架构较Sol估算费用低31.1%，待重复确认 | 区分规划错误与落实失败、按角色隔离审查和修改、核对完整协作成本 |
 
 ## 调参集为什么借鉴机器学习
 

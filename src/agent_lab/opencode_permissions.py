@@ -7,8 +7,8 @@ ask OpenCode itself to evaluate representative native/MCP/delegation actions.
 from .workflow_gateway import role_tool_definitions
 
 ROLE_AGENT_IDS = {"solo": "lab-experiment-solo", "planner": "lab-experiment-planner",
-                  "worker": "lab-experiment-executor"}
-PERMISSION_POLICY_VERSION = "explicit-role-whitelist-v2-chunk-edit"
+                  "worker": "lab-experiment-executor", "reviewer": "lab-experiment-reviewer"}
+PERMISSION_POLICY_VERSION = "explicit-role-whitelist-v3-readonly-reviewer"
 
 
 class PermissionConfigurationError(ValueError):
@@ -20,6 +20,8 @@ def role_ids(strategy):
         return {"solo": ROLE_AGENT_IDS["solo"]}
     if strategy in {"planner_worker", "planner_handoff"}:
         return {role: ROLE_AGENT_IDS[role] for role in ("planner", "worker")}
+    if strategy == "planner_executor_reviewer":
+        return {role: ROLE_AGENT_IDS[role] for role in ("planner", "worker", "reviewer")}
     raise ValueError("Unsupported workflow strategy")
 
 
@@ -82,13 +84,14 @@ def permission_probes(role, strategy="planner_worker"):
                   ("execute", "*"), ("question", "*"), ("websearch", "test"),
                   ("external_directory", "../*"), ("subagent", "lab-worker"),
                   ("subagent", "general"), ("subagent", ROLE_AGENT_IDS["planner"]))]
-    for other in ("solo", "planner", "worker"):
+    for other in ROLE_AGENT_IDS:
         if other != role:
             probes.append({"action": f"lab_{other}_write_file", "resources": ["*"], "expected": "deny"})
             probes.append({"action": f"lab_{other}_edit_file", "resources": ["*"], "expected": "deny"})
-    if role == "planner":
-        probes.append({"action": "lab_planner_write_file", "resources": ["*"], "expected": "deny"})
-        probes.append({"action": "lab_planner_edit_file", "resources": ["*"], "expected": "deny"})
+    if role in {"planner", "reviewer"}:
+        probes.append({"action": f"lab_{role}_write_file", "resources": ["*"], "expected": "deny"})
+        probes.append({"action": f"lab_{role}_edit_file", "resources": ["*"], "expected": "deny"})
+    probes.append({"action": "subagent", "resources": [ROLE_AGENT_IDS["reviewer"]], "expected": "deny"})
     probes.append({"action": "subagent", "resources": [ROLE_AGENT_IDS["worker"]],
                    "expected": "allow" if role == "planner" and strategy == "planner_worker" else "deny"})
     probes.extend({"action": f"lab_{role}_{tool['name']}", "resources": ["*"], "expected": "allow"}

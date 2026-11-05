@@ -90,6 +90,12 @@ Sol Planner＋DeepSeek Executor 及两组单模型对照的专用入口为 `conf
 
 证据：[线上报告](../artifacts/workflow-deepseek-20261024-01/report.json)、[本地 OpenCode 固定回复检查](../artifacts/workflow-protocol-20261024-03/report.json)。本轮证明单 Agent 工作流接入可用，不据此推断多 Agent 效果或模型排名。
 
+## Plan 14：规划、执行、只读审查与修正
+
+新增 `planner_executor_reviewer`，三个模型位置依次为Planner、Executor、Reviewer。入口为 [workflow-python-plan-execute-review.json](../configs/workflow-python-plan-execute-review.json)，工作流为 [plan-execute-review.json](../configs/workflows/plan-execute-review.json)。同会话四轮所有权依次为Planner→Executor→Reviewer→Executor；Reviewer只读，意见通过历史传给Executor，最终仅Executor可以修正。审查文本单独保存 `review.json`，与逐轮源码、角色／模型选择、用量和外部验收一起留存。
+
+默认配置包含Sol单体、Luna单体、旧交接、新审查结构四组，同四题、相同新四轮提示，每格一次共16项，整批 $5。首次正式批次已全部完成：Sol与新架构4/4，Luna1/4，旧交接3/4；新架构估算 $0.671365065，较Sol的 $0.9742456 低约31.1%，整批 $2.001820535。用量完整，无环境停止或自动重跑；每格一次，尚待重复确认。与旧工作流的历史批次分开比较。[正式报告](../artifacts/plan14-review-comparison-live-20261104-01/review-comparison.md)、[Plan 14完整分析](decisions/014-planner-executor-reviewer.md)。
+
 ## 五模型单 Agent 验证：2026-10-24
 
 同一题、同一四轮工作流，DeepSeek／Luna／Sol／Sonnet／Haiku 各运行一次，全部完成四轮并通过公开 4/4、隐藏 40/40，用量完整，未重跑。批次共 131689 Token，冻结价格下估算费用 $0.063397832。单题单次结果用于确认接入和观察开销，不作为稳定排名。

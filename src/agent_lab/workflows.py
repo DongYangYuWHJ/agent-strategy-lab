@@ -3,6 +3,24 @@ from dataclasses import dataclass
 from .domain import read_json, safe_id
 
 
+ARCHITECTURE_MODEL_COUNTS = {"single_agent": 1, "planner_worker": 2,
+                             "planner_handoff": 2, "planner_executor_reviewer": 3}
+
+
+def primary_schedule(strategy, workflow):
+    """Validate fixed handoffs before any generation; return role/model positions."""
+    if strategy == "planner_handoff":
+        if len(workflow.turns) < 2 or workflow.turns[0].id != "plan" or workflow.turns[0].allow_write:
+            raise ValueError("Planner handoff requires a read-only first plan turn and later executor turns")
+        return (("planner", 0), *(("worker", 1) for _ in workflow.turns[1:]))
+    if strategy == "planner_executor_reviewer":
+        expected = (("plan", False), ("implement", True), ("review", False), ("revise", True))
+        if tuple((t.id, t.allow_write) for t in workflow.turns) != expected:
+            raise ValueError("Plan/execute/review requires plan(read-only), implement, review(read-only), revise")
+        return (("planner", 0), ("worker", 1), ("reviewer", 2), ("worker", 1))
+    return None
+
+
 @dataclass(frozen=True)
 class Turn:
     id: str

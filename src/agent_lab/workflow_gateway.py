@@ -24,10 +24,10 @@ CLARIFY = {"name": "request_clarification", "description": "Pause the experiment
 
 
 def role_tool_definitions(role):
-    if role not in {"solo", "planner", "worker"}:
+    if role not in {"solo", "planner", "worker", "reviewer"}:
         raise ValueError("Unknown experiment role")
     return [tool for tool in [*TOOLS, CLARIFY]
-            if tool["name"] != "submit" and (role != "planner" or tool["name"] not in {"write_file", "edit_file"})]
+            if tool["name"] != "submit" and (role not in {"planner", "reviewer"} or tool["name"] not in {"write_file", "edit_file"})]
 
 
 def stream_result(provider, events):
@@ -245,7 +245,7 @@ class Gateway:
                                     question=str(call.arguments.get("question", ""))[:2000])
                 raise StopRun("needs_user_input")
             try:
-                if call.name in {"write_file", "edit_file"} and (not self.allow_write or role == "planner"):
+                if call.name in {"write_file", "edit_file"} and (not self.allow_write or role in {"planner", "reviewer"}):
                     raise ValueError("Writes are disabled for this turn/role")
                 result = execute(call, self.workspace, self.checks, self.remaining())
                 self.workspace.verify_immutable()
@@ -284,7 +284,7 @@ def serve_gateway(gateway):
                 if size <= 0 or (gateway.limits.max_request_bytes is not None and size > gateway.limits.max_request_bytes):
                     raise StopRun("request_size_limit")
                 payload = json.loads(self.rfile.read(size))
-                if len(parts) == 3 and parts[1] == "mcp" and parts[2] in {"solo", "planner", "worker"}:
+                if len(parts) == 3 and parts[1] == "mcp" and parts[2] in {"solo", "planner", "worker", "reviewer"}:
                     if "id" not in payload:
                         return self.reply(202)
                     result = gateway.mcp(parts[2], payload)

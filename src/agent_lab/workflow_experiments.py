@@ -11,7 +11,7 @@ from .opencode_permissions import role_ids, PERMISSION_POLICY_VERSION
 from .providers import make_provider
 from .reporting import collect_results, write_report
 from .runner import task_fingerprint
-from .workflows import Workflow
+from .workflows import Workflow, ARCHITECTURE_MODEL_COUNTS, primary_schedule
 from .workspace import inventory
 
 
@@ -28,9 +28,10 @@ def load_workflow_experiment(path, catalog, model_filter=None):
         if set(item) != {"id", "strategy", "models"}:
             raise ValueError("Architecture requires id, strategy, models")
         safe_id(item["id"])
-        expected = {"single_agent": 1, "planner_worker": 2, "planner_handoff": 2}.get(item["strategy"])
+        expected = ARCHITECTURE_MODEL_COUNTS.get(item["strategy"])
         if expected is None or len(item["models"]) != expected:
             raise ValueError("Invalid workflow architecture")
+        primary_schedule(item["strategy"], workflow)
         models = [catalog[mid] for mid in item["models"]]
         if any(m.provider == "mock" for m in models):
             raise ValueError("OpenCode workflows require real provider configurations")
