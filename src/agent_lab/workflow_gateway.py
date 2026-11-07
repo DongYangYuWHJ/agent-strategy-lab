@@ -14,20 +14,24 @@ import time
 import urllib.request
 from .accounting import Ledger, StopRun
 from .domain import save_json, ToolCall, bounded_timeout
-from .providers import make_provider, NoRedirect, ProviderError
+from .providers import make_provider, NoRedirect
 from .token_counting import TokenCountError
 from .tools import TOOLS, execute
+from .self_tests import SelfTests, SELF_TEST_TOOLS, SELF_TEST_NAMES
+from .upstream_diagnostics import UpstreamFailure, describe_failure
 
 CLARIFY = {"name": "request_clarification", "description": "Pause the experiment if task information is genuinely missing. No answer is fabricated.",
            "parameters": {"type": "object", "properties": {"question": {"type": "string"}},
                           "required": ["question"], "additionalProperties": False}}
 
 
-def role_tool_definitions(role):
+def role_tool_definitions(role, flexible=False):
     if role not in {"solo", "planner", "worker", "reviewer"}:
         raise ValueError("Unknown experiment role")
-    return [tool for tool in [*TOOLS, CLARIFY]
-            if tool["name"] != "submit" and (role not in {"planner", "reviewer"} or tool["name"] not in {"write_file", "edit_file"})]
+    return [tool for tool in [*TOOLS, *SELF_TEST_TOOLS, CLARIFY]
+            if tool["name"] != "submit"
+            and (flexible or role not in {"planner", "reviewer"} or tool["name"] not in {"write_file", "edit_file", "write_test"})
+            and (flexible or role != "planner" or tool["name"] != "run_self_tests")]
 
 
 def stream_result(provider, events):
@@ -72,8 +76,11 @@ def forward_stream(provider, payload, timeout):
         headers={"Content-Type": "application/json", **headers}, method="POST")
     deadline = time.monotonic() + timeout if timeout is not None else float("inf")
     chunks = []
+    stage, status, response_headers, events = "connect", None, None, []
     try:
         with urllib.request.build_opener(NoRedirect()).open(request, timeout=timeout) as response:
+            status, response_headers = getattr(response, "status", None), getattr(response, "headers", None)
+            stage = "read"
             while True:
                 if time.monotonic() >= deadline:
                     raise TimeoutError
@@ -84,14 +91,15 @@ def forward_stream(provider, payload, timeout):
                 if provider.model.max_output_tokens is not None and sum(map(len, chunks)) > 16 * 1024 * 1024:
                     raise ValueError("Response too large")
         body = b"".join(chunks)
-        events = []
+        stage = "parse"
         for block in body.decode("utf-8").replace("\r\n", "\n").split("\n\n"):
             data = "\n".join(line[5:].strip() for line in block.splitlines() if line.startswith("data:"))
             if data and data != "[DONE]":
                 events.append(json.loads(data))
         return body, stream_result(provider.model.provider, events)
     except Exception as exc:
-        raise ProviderError(f"Upstream stream failed ({type(exc).__name__}); usage may be unknown") from None
+        raise UpstreamFailure(describe_failure(exc, stage, key, status=status, headers=response_headers,
+                              received_bytes=sum(map(len, chunks)), events=events)) from None
 
 
 class Gateway:
@@ -101,6 +109,7 @@ class Gateway:
         self.ledger = Ledger(limits)
         self.limits, self.directory, self.recorder = limits, directory, recorder
         self.workspace, self.checks = workspace, checks
+        self.self_tests = SelfTests(directory, workspace)
         self.lock = threading.RLock()
         self.started = time.monotonic()
         self.halted = ""
@@ -108,6 +117,7 @@ class Gateway:
         self.allow_write = False
         self.closed = True
         self.active_role = None
+        self.flexible = False
         self.active_model_id = None
         self.secret = secrets.token_urlsafe(24)
 
@@ -190,15 +200,28 @@ class Gateway:
             self.recorder.event("request_started", call=index, model_id=model.id, turn=self.turn, primary_role=self.active_role,
                                 request_bytes=len(encoded), estimated_input_tokens=estimate,
                                 estimated_reserve_usd=str(reservation))
+            failure_stage, raw = "upstream", None
             try:
                 body, raw = forward_stream(provider, payload, bounded_timeout(self.remaining(), self.limits.request_timeout_seconds))
+                failure_stage = "save_response"
                 save_json(self.directory / "calls" / f"{index:03d}-response.json", raw)
                 (self.directory / "calls" / f"{index:03d}-response.sse").write_bytes(body)
+                failure_stage = "usage"
                 usage = provider.usage(raw)
-            except Exception:
+            except Exception as exc:
                 self.ledger.mark_unknown(reservation)
-                self.recorder.event("usage_unknown", call=index, estimated_reserve_usd=str(reservation))
                 self.halted = "usage_unknown"
+                diagnostic = describe_failure(exc, failure_stage, provider._api_key,
+                                              received_bytes=len(body) if raw is not None else 0,
+                                              events=[{"response": raw}] if raw is not None else [])
+                error_log = f"calls/{index:03d}-error.json"
+                failure = {"schema_version": 1, "call": index, "model_config_id": model.id,
+                           "provider": model.provider, "turn": self.turn, "primary_role": self.active_role,
+                           **diagnostic}
+                save_json(self.directory / error_log, failure)
+                self.recorder.event("upstream_error", **failure, error_log=error_log)
+                self.recorder.event("usage_unknown", call=index, estimated_reserve_usd=str(reservation),
+                                    error_log=error_log)
                 raise StopRun("usage_unknown") from None
             entry = self.ledger.record(model, usage, raw.get("id", ""), raw.get("model", model.model))
             self.recorder.event("request_completed", **entry, turn=self.turn, primary_role=self.active_role)
@@ -231,7 +254,7 @@ class Gateway:
             return {}
         if method == "tools/list":
             return {"tools": [{"name": t["name"], "description": t["description"], "inputSchema": t["parameters"]}
-                              for t in role_tool_definitions(role)]}
+                              for t in role_tool_definitions(role, getattr(self, 'flexible', False))]}
         if method != "tools/call":
             raise ValueError("Unsupported MCP method")
         with self.lock:
@@ -245,9 +268,13 @@ class Gateway:
                                     question=str(call.arguments.get("question", ""))[:2000])
                 raise StopRun("needs_user_input")
             try:
-                if call.name in {"write_file", "edit_file"} and (not self.allow_write or role in {"planner", "reviewer"}):
+                flexible = getattr(self, 'flexible', False)
+                if call.name not in {t['name'] for t in role_tool_definitions(role, flexible)}:
+                    raise ValueError("Tool is not allowed for this role")
+                if call.name in {"write_file", "edit_file", "write_test"} and (not self.allow_write or (not flexible and role in {"planner", "reviewer"})):
                     raise ValueError("Writes are disabled for this turn/role")
-                result = execute(call, self.workspace, self.checks, self.remaining())
+                result = (self.self_tests.execute(call, self.remaining()) if call.name in SELF_TEST_NAMES else
+                          execute(call, self.workspace, self.checks, self.remaining()))
                 self.workspace.verify_immutable()
             except (ValueError, OSError) as exc:
                 result = {"ok": False, "error": str(exc)[:500]}

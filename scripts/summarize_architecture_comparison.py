@@ -44,7 +44,7 @@ def summarize(directory, *, rows_only=False):
         writes = [event for event in events if event["type"] == "tool"
                   and event.get("tool") in {"write_file", "edit_file"} and event["result"].get("ok") is True]
         plan_writes = [event for event in writes if event["turn"] == "plan"]
-        if plan_writes:
+        if plan_writes and architectures[cell['architecture']]['strategy'] != 'planner_executor_reviewer_flexible':
             raise ValueError("Planning phase wrote source code")
         architecture = architectures[cell["architecture"]]
         handoff = architecture["strategy"] == "planner_handoff"

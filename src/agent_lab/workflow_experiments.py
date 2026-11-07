@@ -11,7 +11,7 @@ from .opencode_permissions import role_ids, PERMISSION_POLICY_VERSION
 from .providers import make_provider
 from .reporting import collect_results, write_report
 from .runner import task_fingerprint
-from .workflows import Workflow, ARCHITECTURE_MODEL_COUNTS, primary_schedule
+from .workflows import Workflow, ARCHITECTURE_MODEL_COUNTS, primary_schedule, effective_workflow
 from .workspace import inventory
 
 
@@ -31,7 +31,7 @@ def load_workflow_experiment(path, catalog, model_filter=None):
         expected = ARCHITECTURE_MODEL_COUNTS.get(item["strategy"])
         if expected is None or len(item["models"]) != expected:
             raise ValueError("Invalid workflow architecture")
-        primary_schedule(item["strategy"], workflow)
+        primary_schedule(item["strategy"], effective_workflow(item['strategy'], workflow))
         models = [catalog[mid] for mid in item["models"]]
         if any(m.provider == "mock" for m in models):
             raise ValueError("OpenCode workflows require real provider configurations")
@@ -57,6 +57,11 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
     plan = [{"cell": f"{t.id}:{a['id']}:{r}", "task": t.id, "architecture": a["id"], "repeat": r}
             for r in range(repeats) for t in tasks for a, _ in architectures]
     random.Random(seed).shuffle(plan)
+    skipped = read_json(path).get('skip_cells', [])
+    if (not isinstance(skipped, list) or len(set(skipped)) != len(skipped)
+            or not set(skipped) <= {c['cell'] for c in plan}):
+        raise ValueError('skip_cells must contain distinct planned cell IDs')
+    plan = [c for c in plan if c['cell'] not in skipped]
     identity = {"schema_version": 1, "backend": "opencode", "opencode_version": SUPPORTED_VERSION,
                 "framework_fingerprint": digest(inventory(Path(__file__).parent)), "workflow": asdict(workflow),
                 "token_counting": counters,
@@ -66,6 +71,10 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
                 "permission_policy": PERMISSION_POLICY_VERSION,
                 "agent_ids": {a["id"]: role_ids(a["strategy"]) for a, _ in architectures},
                 "limits": asdict(limits), "seed": seed, "plan": plan, "batch_budget_usd": str(budget) if budget is not None else None}
+    if skipped:
+        identity['skip_cells'] = skipped
+    if any(a['strategy'].endswith('_flexible') for a, _ in architectures):
+        identity['architecture_workflows'] = {a['id']: asdict(effective_workflow(a['strategy'], workflow)) for a, _ in architectures}
     output = output.resolve()
     if resume:
         manifest = read_json(output / "batch.json")
@@ -116,7 +125,7 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
             manifest["inflight"] = {}
             save_json(output / "batch.json", manifest)
             print(f"{task.id} / {arch['id']}: {result['status']} ({result['stop_reason']}); turns {result['turns_completed']}/{result['turns_expected']}", flush=True)
-            if result["status"] in {"error", "cancelled"} or not result["accounting"]["usage_complete"] or result["stop_reason"] == "input_count_error":
+            if result["status"] in {"error", "cancelled"} or not result["accounting"]["usage_complete"] or result["stop_reason"] in {"input_count_error", "budget_limit"}:
                 manifest["status"] = result["stop_reason"]
                 break
         else:

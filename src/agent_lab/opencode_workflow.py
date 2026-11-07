@@ -25,7 +25,7 @@ from .opencode_permissions import (PermissionConfigurationError, PERMISSION_POLI
 from .runner import task_fingerprint
 from .telemetry import Recorder
 from .workflow_gateway import Gateway, serve_gateway
-from .workflows import SYSTEM, ARCHITECTURE_MODEL_COUNTS, primary_schedule
+from .workflows import SYSTEM, ARCHITECTURE_MODEL_COUNTS, primary_schedule, effective_workflow
 from .workspace import Workspace, file_hash, inventory
 
 
@@ -114,6 +114,12 @@ def model_matches(actual, model):
 
 
 def workflow_role_prompts(strategy):
+    if strategy == 'planner_executor_reviewer_flexible':
+        root = Path(__file__).resolve().parents[2] / 'roles'
+        common = (root / 'workflow-flexible-team.md').read_text(encoding='utf-8')
+        return {role: common + '\nYour primary focus is ' + focus + '.' for role, focus in
+                [('planner', 'planning implementation and tests'), ('worker', 'implementation, testing and delivery'),
+                 ('reviewer', 'independent review against original requirements')]}
     if strategy == "single_agent":
         return {"solo": SYSTEM + "\nDo not delegate."}
     if strategy not in {"planner_worker", "planner_handoff", "planner_executor_reviewer"}:
@@ -123,7 +129,7 @@ def workflow_role_prompts(strategy):
         names = (("planner", "workflow-handoff-planner.md"), ("worker", "workflow-review-executor.md"),
                  ("reviewer", "workflow-reviewer.md"))
     elif strategy == "planner_handoff":
-        names = (("planner", "workflow-handoff-planner.md"), ("worker", "workflow-handoff-executor.md"))
+        names = (("planner", "workflow-handoff-planner.md"), ("worker", "workflow-review-executor.md"))
     else:
         names = (("planner", "workflow-planner.md"), ("worker", "workflow-executor.md"))
     return {role: SYSTEM + "\n" + (root / name).read_text(encoding="utf-8")
@@ -163,10 +169,10 @@ def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
         if limits.max_calls is not None:
             result["steps"] = limits.max_calls
         return result
-    executor_mode = "primary" if strategy in {"planner_handoff", "planner_executor_reviewer"} else "subagent"
+    executor_mode = "primary" if strategy in {"planner_handoff", "planner_executor_reviewer", "planner_executor_reviewer_flexible"} else "subagent"
     agents = ({main: agent("solo", models[0], "primary")} if strategy == "single_agent" else
               {main: agent("planner", models[0], "primary"), ids["worker"]: agent("worker", models[1], executor_mode)})
-    if strategy == "planner_executor_reviewer":
+    if strategy in {"planner_executor_reviewer", "planner_executor_reviewer_flexible"}:
         agents[ids["reviewer"]] = agent("reviewer", models[2], "primary")
     roles = list(ids)
     tool_timeouts = {"startup": 10000, "catalog": 10000}
@@ -343,6 +349,7 @@ def review_reply(messages):
 
 
 def run_workflow(task, models, limits, output, workflow, strategy="single_agent", session_factory=OpenCodeSession, role_prompts=None):
+    workflow = effective_workflow(strategy, workflow)
     if strategy not in ARCHITECTURE_MODEL_COUNTS or len(models) != ARCHITECTURE_MODEL_COUNTS[strategy]:
         raise ValueError("Workflow architecture has an invalid model assignment")
     schedule = primary_schedule(strategy, workflow)
@@ -355,6 +362,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
     workspace = Workspace(task, directory)
     checks = Checks(task, directory, workspace, limits.check_timeout_seconds)
     gateway = Gateway(task, models, limits, directory, recorder, workspace, checks)
+    gateway.flexible = strategy.endswith('_flexible')
     started_at = now()
     started = time.monotonic()
     configuration = {"schema_version": 1, "framework_fingerprint": digest(inventory(Path(__file__).parent)),
@@ -418,6 +426,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
                         state("waiting_for_turn")
                         readonly_before = ({name: file_hash(workspace.resolve(name)) for name in task.editable_files}
                                            if not turn.allow_write else None)
+                        readonly_tests = gateway.self_tests.fingerprint() if not turn.allow_write else None
                         messages = session.run_turn(text, turn_dir)
                         with gateway.lock:
                             gateway.closed = True
@@ -425,11 +434,14 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
                             if readonly_before is not None and any(file_hash(workspace.resolve(name)) != value
                                                                    for name, value in readonly_before.items()):
                                 raise StopRun("read_only_violation")
-                            if strategy == "planner_executor_reviewer" and role == "reviewer":
+                            if readonly_tests is not None and readonly_tests != gateway.self_tests.fingerprint():
+                                raise StopRun("read_only_violation")
+                            if strategy in {"planner_executor_reviewer", "planner_executor_reviewer_flexible"} and role == "reviewer":
                                 review = {"turn": turn.id, "role": role, "model_id": model.id,
                                           "text": review_reply(messages), "source": str((turn_dir / "messages.json").relative_to(directory))}
                                 save_json(directory / "review.json", review)
                             snapshot = turn_dir / "workspace"
+                            gateway.self_tests.snapshot(turn_dir / "self-tests")
                             for name in workspace.list_files():
                                 dest = snapshot / name
                                 dest.parent.mkdir(parents=True, exist_ok=True)

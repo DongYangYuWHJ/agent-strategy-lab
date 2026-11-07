@@ -1,0 +1,23 @@
+{
+  "schema_version": 1, "backend": "opencode",
+  "workflow": "workflows/plan-execute-review-self-tests.json",
+  "architectures": [
+    {"id": "strict-sol-luna-sol", "strategy": "planner_executor_reviewer", "models": ["gpt-6.1-sol", "gpt-6-luna", "gpt-6.1-sol"]},
+    {"id": "flexible-sol-luna-sol", "strategy": "planner_executor_reviewer_flexible", "models": ["gpt-6.1-sol", "gpt-6-luna", "gpt-6.1-sol"]}
+  ],
+  "repeats": 3, "seed": 42, "batch_budget_usd": "5.00",
+  "limits": {
+    "max_calls": null, "max_tool_steps": null, "max_repairs": null,
+    "max_no_progress": null, "max_total_tokens": null, "max_request_bytes": null,
+    "max_estimated_input_tokens": null, "max_seconds": null,
+    "request_timeout_seconds": null, "token_count_timeout_seconds": null,
+    "check_timeout_seconds": null, "max_cost_usd": null
+  },
+  "task_globs": [
+    "../benchmarks/python-calibration-v1/tasks/python-itsdangerous-token-migration/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-itsdangerous-integrated/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-cachetools-atomic-update/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-cachetools-integrated/task.json"
+  ],
+  "catalog": "models-python-calibration-repeat.json"
+}

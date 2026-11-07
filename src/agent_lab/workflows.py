@@ -4,7 +4,15 @@ from .domain import read_json, safe_id
 
 
 ARCHITECTURE_MODEL_COUNTS = {"single_agent": 1, "planner_worker": 2,
-                             "planner_handoff": 2, "planner_executor_reviewer": 3}
+                             "planner_handoff": 2, "planner_executor_reviewer": 3,
+                             "planner_executor_reviewer_flexible": 3}
+
+
+def effective_workflow(strategy, workflow):
+    if strategy == 'planner_executor_reviewer_flexible':
+        from pathlib import Path
+        return Workflow.load(Path(__file__).resolve().parents[2] / 'configs/workflows/plan-execute-review-flexible.json')
+    return workflow
 
 
 def primary_schedule(strategy, workflow):
@@ -13,8 +21,9 @@ def primary_schedule(strategy, workflow):
         if len(workflow.turns) < 2 or workflow.turns[0].id != "plan" or workflow.turns[0].allow_write:
             raise ValueError("Planner handoff requires a read-only first plan turn and later executor turns")
         return (("planner", 0), *(("worker", 1) for _ in workflow.turns[1:]))
-    if strategy == "planner_executor_reviewer":
-        expected = (("plan", False), ("implement", True), ("review", False), ("revise", True))
+    if strategy in {"planner_executor_reviewer", "planner_executor_reviewer_flexible"}:
+        flexible = strategy.endswith('_flexible')
+        expected = (("plan", flexible), ("implement", True), ("review", flexible), ("revise", True))
         if tuple((t.id, t.allow_write) for t in workflow.turns) != expected:
             raise ValueError("Plan/execute/review requires plan(read-only), implement, review(read-only), revise")
         return (("planner", 0), ("worker", 1), ("reviewer", 2), ("worker", 1))
@@ -53,6 +62,9 @@ class Workflow:
 SYSTEM = """You are participating in a developer conversation about one coding task.
 Follow the current user turn; earlier task requirements remain in force.
 Use the lab MCP tools to read source, edit permitted files, and run public checks.
+Advisory unittest tools are available by role: list_tests/read_test, write_test for executors,
+run_self_tests for executors/reviewers. Test plans and reviews must independently use the
+original requirements. Self-tests never replace external acceptance.
 If essential task facts are missing, use request_clarification instead of inventing an answer.
 Only lab tools may access task files. Never modify evaluators or configuration.
 The operator controls when this turn and the whole experiment end. Do not call submit.

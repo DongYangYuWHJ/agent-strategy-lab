@@ -1,4 +1,4 @@
-"""Read-only four-architecture review comparison; no model calls or regrading."""
+"""Read-only review architecture comparison; no model calls or regrading."""
 import argparse
 from decimal import Decimal
 import json
@@ -31,7 +31,8 @@ def summarize(directory, preregistration):
     config = batch['configuration']
     for key in ('architectures', 'workflow', 'role_prompts', 'limits', 'framework_fingerprint', 'task_fingerprints'):
         assert config[key] == frozen[key], key
-    assert len(config['plan']) == frozen['planned_cells'] == 16
+    planned = frozen['planned_cells']
+    assert len(config['plan']) == planned
     architectures = {a['id']: a for a in config['architectures']}
     phases = [t['id'] for t in config['workflow']['turns']]
     assert phases == ['plan', 'implement', 'review', 'revise']
@@ -106,8 +107,8 @@ def summarize(directory, preregistration):
                           for phase in phases} for name in architectures}
     known = sum((Decimal(t['known_cost_usd']) for t in grouped.values()), Decimal(0))
     reserve = sum((Decimal(t['unknown_cost_reserve_usd']) for t in grouped.values()), Decimal(0))
-    summary = {'schema_version': 1, 'status': batch['status'], 'planned': 16, 'recorded': len(rows),
-               'complete': batch['status'] == 'completed' and len(rows) == 16,
+    summary = {'schema_version': 1, 'status': batch['status'], 'planned': planned, 'recorded': len(rows),
+               'complete': batch['status'] == 'completed' and len(rows) == planned,
                'valid_final_grades': sum(r['category'] != 'incomplete_or_environment' for r in rows),
                'all_usage_complete': all(r['accounting']['usage_complete'] for r in rows),
                'known_cost_usd': str(known), 'unknown_cost_reserve_usd': str(reserve),
@@ -119,8 +120,8 @@ def summarize(directory, preregistration):
                                'Review text and code changes are observations, not proof of causal repair.',
                                'Costs include failed attempts; unknown usage remains separate; not invoices.',
                                'Final hidden feedback never returned to models; no automatic paid retries.']}
-    lines = ['# Plan 14：四架构正式对照', '',
-             f"状态 {batch['status']}，记录 {len(rows)}/16 项，有效最终验收 {summary['valid_final_grades']} 项。每题×每架构一次，没有调参或自动重跑。", '',
+    lines = ['# Plan 14：审查架构正式对照', '',
+             f"状态 {batch['status']}，记录 {len(rows)}/{planned} 项，有效最终验收 {summary['valid_final_grades']} 项。每题×每架构一次，没有调参或自动重跑。", '',
              '| 结构 | 全通过／有效验收 | 环境／未完成 | API | Token | 估算 USD | 未知预留 USD | 累计秒 |',
              '|---|---:|---:|---:|---:|---:|---:|---:|']
     for name, t in grouped.items():
@@ -145,9 +146,9 @@ def summarize(directory, preregistration):
         changes = ', '.join(row['files_changed_after_review']) or ('无修改' if row['turns_completed'] == 4 else '尚未完成')
         lines += [f"- {row['task']}：{row['category']}；审查后改变的文件：{changes}；[可见审查]({review_path})。"]
     lines += ['', f'已知合计 ${known}，未知预留 ${reserve}，本批预算 ${config["batch_budget_usd"]}。失败和中断的已知费用均保留，未知预留不是实际账单。', '',
-              '所有组共用新四轮提示、任务、模型档位、工具与最终验收。新架构Sol规划和审查，Luna实施与修正；旧交接在审查阶段仍为Luna；单体全程同一模型。规划及审查阶段只读。', '',
+              '所有组共用四轮提示、任务、各模型档位、工具与最终验收。各组实际模型分配见逐项JSON和冻结配置：三角色模型列表依次为Planner、Executor、Reviewer，最后修正仍由Executor负责；单体全程同一模型。规划及审查阶段只读。', '',
               '审查意见只读自可见回复，不提取reasoning。代码是否改变与最终是否通过分别记录；没有重新给实施快照执行隐藏评分，不能仅凭最终成功声称Reviewer修好了某个错误。', '',
-              '四个相关开发任务、每格一次，只能作为探索；不与Plan 13或小任务报告混合分母。角色指令也属于架构差异，不能将结果完全归因于换模型。完整角色／模型选择、源码快照与费用分解保存在同目录JSON及runs原始记录。']
+              '四个相关开发任务、每格一次，只能作为探索；不与历史批次或小任务报告混合分母。需结合冻结的角色指令与模型分配解释差异；若两组仅Planner模型不同，也仍有生成路径和缓存波动。完整角色／模型选择、源码快照与费用分解保存在同目录JSON及runs原始记录。']
     (directory / 'review-comparison.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     (directory / 'review-comparison.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
     print(json.dumps({k: summary[k] for k in ('complete', 'recorded', 'valid_final_grades', 'known_cost_usd', 'unknown_cost_reserve_usd', 'architecture_totals')}, ensure_ascii=True))

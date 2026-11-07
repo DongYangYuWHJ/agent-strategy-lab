@@ -8,7 +8,7 @@ from .workflow_gateway import role_tool_definitions
 
 ROLE_AGENT_IDS = {"solo": "lab-experiment-solo", "planner": "lab-experiment-planner",
                   "worker": "lab-experiment-executor", "reviewer": "lab-experiment-reviewer"}
-PERMISSION_POLICY_VERSION = "explicit-role-whitelist-v3-readonly-reviewer"
+PERMISSION_POLICY_VERSION = "explicit-role-whitelist-v4-advisory-self-tests"
 
 
 class PermissionConfigurationError(ValueError):
@@ -20,7 +20,7 @@ def role_ids(strategy):
         return {"solo": ROLE_AGENT_IDS["solo"]}
     if strategy in {"planner_worker", "planner_handoff"}:
         return {role: ROLE_AGENT_IDS[role] for role in ("planner", "worker")}
-    if strategy == "planner_executor_reviewer":
+    if strategy in {"planner_executor_reviewer", "planner_executor_reviewer_flexible"}:
         return {role: ROLE_AGENT_IDS[role] for role in ("planner", "worker", "reviewer")}
     raise ValueError("Unsupported workflow strategy")
 
@@ -28,7 +28,7 @@ def role_ids(strategy):
 def role_permissions(role, strategy="planner_worker"):
     rules = [{"action": "*", "resource": "*", "effect": "deny"}]
     rules.extend({"action": f"lab_{role}_{tool['name']}", "resource": "*", "effect": "allow"}
-                 for tool in role_tool_definitions(role))
+                 for tool in role_tool_definitions(role, strategy.endswith('_flexible')))
     if role == "planner" and strategy == "planner_worker":
         rules.append({"action": "subagent", "resource": ROLE_AGENT_IDS["worker"], "effect": "allow"})
     return rules
@@ -88,12 +88,13 @@ def permission_probes(role, strategy="planner_worker"):
         if other != role:
             probes.append({"action": f"lab_{other}_write_file", "resources": ["*"], "expected": "deny"})
             probes.append({"action": f"lab_{other}_edit_file", "resources": ["*"], "expected": "deny"})
-    if role in {"planner", "reviewer"}:
+    if role in {"planner", "reviewer"} and not strategy.endswith('_flexible'):
+        probes.append({"action": f"lab_{role}_write_test", "resources": ["*"], "expected": "deny"})
         probes.append({"action": f"lab_{role}_write_file", "resources": ["*"], "expected": "deny"})
         probes.append({"action": f"lab_{role}_edit_file", "resources": ["*"], "expected": "deny"})
     probes.append({"action": "subagent", "resources": [ROLE_AGENT_IDS["reviewer"]], "expected": "deny"})
     probes.append({"action": "subagent", "resources": [ROLE_AGENT_IDS["worker"]],
                    "expected": "allow" if role == "planner" and strategy == "planner_worker" else "deny"})
     probes.extend({"action": f"lab_{role}_{tool['name']}", "resources": ["*"], "expected": "allow"}
-                  for tool in role_tool_definitions(role))
+                  for tool in role_tool_definitions(role, strategy.endswith('_flexible')))
     return probes
