@@ -1,5 +1,7 @@
 # 实验决策与计划变更记录
 
+[English experiment plan and decision history](en/experiment-plan.md)
+
 这里记录实验为什么发生变化：遇到了什么问题、依据是什么、决定怎么调整、已经做到哪里，以及还不能得出什么结论。运行报告回答“发生了什么”，决策记录回答“为什么改、这次学到了什么”。
 
 ## 维护约定
@@ -34,7 +36,7 @@
 | [014](decisions/014-planner-executor-reviewer.md) | 轨迹诊断与 Plan → Execute → Review | 48次固定输入修正对照：Sol21/24、Luna19/24；修复均12/15，新增失败尝试0对4，总费用$1.643238235 | 区分修复与回归、固定输入重复、共享审查费用不计作整段架构节约 |
 | [015](decisions/015-revision-model-comparison.md) | 修正模型对照与成本收益 | 已记录：两者修复率相同、最终通过数差2次；Sol避免回归更稳，费用约12.75倍，尚不据此换模型 | 区分效果差距、稳定性与费用；局部实验不替代完整架构比较 |
 | [016](decisions/016-planned-self-tests-and-review.md) | Planner规划测试、Executor自测、Reviewer验收 | 24个位置完成验收，Luna自查11/12、Sol独立审查12/12，附历史单体基线 | 职责与权限配合、独立需求核对、过程证据与最终验收分离 |
-| [017](decisions/017-role-flexibility-and-permissions.md) | 严格分工与灵活分工 | 灵活模式已实现并通过真实OpenCode验证，已入夜间付费队列；固定Sol/Luna/Sol、24格、5美元上限 | 区分整体方案与权限单独归因，记录实际分工，保留单Agent参照问题 |
+| [017](decisions/017-role-flexibility-and-permissions.md) | 严格分工与灵活分工 | 24个位置完成验收，两组均11/12，灵活组有效验收费用高28.5% | 区分整体方案与权限单独归因，记录实际分工，保留单Agent参照问题 |
 
 ## 调参集为什么借鉴机器学习
 
