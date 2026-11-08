@@ -140,6 +140,20 @@ Both groups used the same Sol/Luna/Sol model assignment and four-turn schedule. 
 
 Flexible permissions cost **28.5% more** in this comparison. Both groups missed the cross-format cases once, on different repeats of token migration. The observed full-pass rates were equal. The sample gives no clear evidence of a quality difference, and the comparison measures the combined change in permissions and instructions. The known estimate across all attempts was **$9.325152**, including the strict run stopped by the budget guard before final acceptance. [Original decision record](../decisions/017-role-flexibility-and-permissions.md)
 
+## Plan 19 · Review routing pilot
+
+All arms started with Luna planning, implementation, self-review, and initial revision. Escalation added Sol review and another Luna revision. Each arm ran once on three development tasks outside the offline routing analysis.
+
+| Arm | Full passes / valid grades | Escalations | Estimated cost |
+|---|---:|---:|---:|
+| Deliver after Luna self-review | 3/3 | 0/3 | $0.147479 |
+| Escalate by rule | 3/3 | 3/3 | $1.078738 |
+| Always escalate | 3/3 | 3/3 | $1.055128 |
+
+The batch cost $2.281344 with complete usage. The rule escalated every task, and every baseline run passed. The pilot measures escalation behavior and cost. It offers no observed acceptance failures in the baseline to measure missed escalations or reviewer rescue.
+
+All three rule-triggered runs had passing public checks and self-tests. One escalation arose solely from a test reference field containing several valid references where the parser expected one. The other two also had explicit coverage gaps. A retrospective normalization check would reduce escalations from three to two on these saved inputs. The acceptance outcomes for that changed policy remain unmeasured. [Plan 19](../decisions/019-task-and-review-routers.md)
+
 ## How costs and evidence are reported
 
 Costs use reported API usage and the rates saved with each run. The tables label whether costs cover graded runs or all attempts. A reserve for unknown usage is separate from known estimated cost. A partial attempt may consume API calls even when it has no acceptance grade.
