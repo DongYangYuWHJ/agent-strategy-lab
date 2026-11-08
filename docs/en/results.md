@@ -13,6 +13,62 @@ The current comparisons use four Python development tasks. Each task begins from
 
 These are project-authored tasks on pinned library snapshots. The four tasks come from two library families and were used during development of the harness and workflows. Repeats describe variation on these tasks. They do not add independent tasks or establish a general model ranking.
 
+## Architecture results at a glance
+
+The sequence in each workflow is **plan → implement → review → revise**. A single agent handles all four turns. The tables keep separate batches separate, even when their model assignments match.
+
+### Current workflow with agent-written self-tests
+
+| Experiment | Models by turn | Condition | Full passes | Estimated cost of graded runs |
+|---|---|---|---:|---:|
+| Plan 16 follow-up | Sol → Sol → Sol → Sol | Single agent, one run per task | 4/4 (100%) | $2.476 |
+| Plan 16 planner comparison | Luna → Luna → Luna → Luna | Planner-to-executor handoff with Luna in both roles | 8/12 (66.7%) | $0.585 |
+| Plan 16 DeepSeek follow-up | DeepSeek → DeepSeek → DeepSeek → DeepSeek | DeepSeek Flash low in both handoff roles, one run per task | 4/4 (100%) | $0.613 |
+| Plan 16 | Sol → Luna → Luna → Luna | Planner handoff, Luna self-review | 11/12 (91.7%) | $1.357 |
+| Plan 16 | Sol → Luna → Sol → Luna | Independent Sol review | 12/12 (100%) | $3.869 |
+| Plan 17 | Sol → Luna → Sol → Luna | Strict permissions | 11/12 (91.7%) | $3.961 |
+| Plan 17 | Sol → Luna → Sol → Luna | Flexible permissions and corresponding instructions | 11/12 (91.7%) | $5.088 |
+
+### Earlier four-task comparisons
+
+These results predate the current self-test workflow. The Plan 13 repeated architecture series already includes its first run per task. The two Plan 14 comparisons are separate batches.
+
+| Experiment | Workflow | Full passes / valid grades | Known estimated cost |
+|---|---|---:|---:|
+| Plan 13 repeated architecture comparison | Sol single agent | 9/12 (75.0%) | $2.177 |
+| Plan 13 repeated architecture comparison | Luna single agent | 6/12 (50.0%) | $0.182 |
+| Plan 13 repeated architecture comparison | Sol plans, Luna implements and self-reviews | 5/12 (41.7%) | $0.915 |
+| Plan 14 initial review comparison | Sol single agent | 4/4 (100%) | $0.974 |
+| Plan 14 initial review comparison | Luna single agent | 1/4 (25.0%) | $0.064 |
+| Plan 14 initial review comparison | Sol plans, Luna implements and self-reviews | 3/4 (75.0%) | $0.293 |
+| Plan 14 initial review comparison | Sol plans and reviews, Luna implements and revises | 4/4 (100%) | $0.671 |
+| Plan 14 planner comparison | Sol plans and reviews, Luna implements and revises | 3/4 (75.0%) | $0.694 |
+| Plan 14 planner comparison | Luna plans, implements and revises, Sol reviews | 2/4 (50.0%) | $0.508 |
+
+Plan 13's handoff cost includes an interrupted attempt and has a separate $0.065782 unknown-usage reserve. Plan 14 costs refer to the graded comparison batches. The planner comparison also had earlier stopped attempts recorded separately. [Plan 13](../decisions/013-task-discrimination-and-calibration.md) · [Plan 14](../decisions/014-planner-executor-reviewer.md)
+
+### Earlier algorithm-task pilots
+
+The pilots used different tasks and limits. The table gives planned positions as well as valid grades so a configuration that stopped before grading is visible.
+
+| Experiment | Workflow | Full passes / valid grades | Planned positions |
+|---|---|---:|---:|
+| Plan 11 · parent and subagent | DeepSeek single agent | 1/1 | 3 |
+| Plan 11 · parent and subagent | Sol single agent | 3/3 | 3 |
+| Plan 11 · parent and subagent | Sol parent, DeepSeek executor | 2/2 | 3 |
+| Plan 11 · parent and subagent | DeepSeek parent, Sol executor | 1/1 | 3 |
+| Plan 11 · parent and subagent | DeepSeek parent and executor | 1/1 | 3 |
+| Plan 11 · parent and subagent | Sol parent and executor | 3/3 | 3 |
+| Plan 12 · same-session handoff | DeepSeek single agent | 1/1 | 3 |
+| Plan 12 · same-session handoff | Sol single agent | 3/3 | 3 |
+| Plan 12 · same-session handoff | Sol plans, DeepSeek takes over | 3/3 | 3 |
+| Plan 12 · DeepSeek follow-up | DeepSeek low single agent | 2/2 | 2 |
+| Plan 12 · DeepSeek follow-up | DeepSeek max plans, DeepSeek low takes over | 2/2 | 2 |
+
+Plan 11 had seven stops before final acceptance. The first Plan 12 pilot had one output truncation and one workspace setup failure, both in the DeepSeek single-agent group. Use the planned-position column when assessing how often a workflow delivered a full pass. [Plan 11](../decisions/011-planner-executor.md) · [Plan 12](../decisions/012-planner-handoff-and-routing.md)
+
+Plan 15 tested revision alone from saved implementation snapshots. Sol passed 21/24 and Luna passed 19/24. Both repaired 12/15 initially failing inputs. Sol's revision introduced new failures in 0/24 attempts and Luna's in 4/24. These are revision outcomes with shared saved inputs and feedback. [Plan 15](../decisions/015-revision-model-comparison.md)
+
 ## Plan 16 · Self-review and independent review
 
 Both groups used Sol for planning and Luna for implementation and revision. The review turn used Luna in the self-review group and Sol in the independent-review group. Both used the planned-self-test workflow and the same external acceptance checks.
@@ -27,6 +83,34 @@ Both groups used Sol for planning and Luna for implementation and revision. The 
 | **Estimated cost of graded runs** | **$1.357112** | **$3.869028** |
 
 Independent review added one full pass. The self-review failure scored 53/57 and missed the cross-format migration cases. The independent-review group cost about 2.85 times as much. Including all attempts, Plan 16 recorded **$5.521828** in known estimated cost and **$0.136961** in unknown-usage reserves. [Original decision record](../decisions/016-planned-self-tests-and-review.md)
+
+### Planner choice with Luna implementation and self-review
+
+The Luna-planner follow-up kept the same task inputs, four prompts, role handoff, tools, and acceptance checks as the existing Sol-planner group. It ran in a separate batch with three repeats per task.
+
+| Task | Luna planner | Sol planner |
+|---|---:|---:|
+| Token migration | 1/3 | 2/3 |
+| Integrated signing and migration | 1/3 | 3/3 |
+| Atomic update | 3/3 | 3/3 |
+| Integrated resize and rollback | 3/3 | 3/3 |
+| **Full passes** | **8/12** | **11/12** |
+| **Estimated total** | **$0.585025** | **$1.357112** |
+| **Planning phase estimate** | **$0.048877** | **$0.849841** |
+
+Sol planning added three full passes for about $0.772 in additional estimated cost. The gains came from the two ItsDangerous tasks. All 12 Luna-planner runs passed their final self-tests, including the four that failed external acceptance. [Plan 16 planner follow-up](../decisions/016-planned-self-tests-and-review.md)
+
+### DeepSeek planning, implementation, and self-review
+
+DeepSeek Flash low handled both roles in the same Plan 16 handoff workflow and passed all four tasks, including both ItsDangerous tasks. All four final self-test results were current and passed. The batch recorded 162 generation calls and $0.613214 in estimated cost, with complete usage.
+
+| Four-task comparison | Full passes | Estimated cost |
+|---|---:|---:|
+| Luna in both roles, first preassigned repeat per task | 2/4 | $0.187208 |
+| DeepSeek in both roles, one run per task | 4/4 | $0.613214 |
+| Sol planning with Luna implementation and self-review, first preassigned repeat per task | 4/4 | $0.446689 |
+
+The DeepSeek run matched the Sol-to-Luna pass count at about 37% higher estimated cost. The groups ran in separate batches. The DeepSeek result covers one repeat per task. [Plan 16 DeepSeek follow-up](../decisions/016-planned-self-tests-and-review.md)
 
 ### Sol single-agent comparison with the same self-test workflow
 

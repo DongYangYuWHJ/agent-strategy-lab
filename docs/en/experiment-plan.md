@@ -8,11 +8,11 @@ Agent Architecture Lab studies how model assignment, review, and tool permission
 
 - **Planning, self-testing, and review.** Plan 16 completed the self-review versus independent-review comparison and a four-task Sol single-agent follow-up. The Sol-to-Luna handoff is the lower-cost observed configuration on the four-task follow-up. The independent-review group has the highest observed full-pass count in the repeated Plan 16 comparison. [Results](results.md)
 - **Role flexibility.** Plan 17 completed the strict and flexible comparisons. Both groups passed 11/12. Flexible permissions increased estimated cost in this batch. [Results](results.md#plan-17--strict-versus-flexible-permissions)
-- **Next question.** Test whether observable signs of unresolved risk can identify tasks that benefit from independent review. This review-routing experiment remains proposed.
+- **Review routing.** Plan 18 replayed candidate escalation signals on 12 self-review traces. Failed, missing, or stale checks triggered no escalation and missed the only final acceptance failure. Adding broad gap-related keywords escalated all 12 runs. The live routing comparison remains proposed. [Plan 18](../decisions/018-review-routing.md)
 
 ## Proposed review-routing experiment
 
-Use Luna self-review as the default and define escalation rules before running the comparison. Candidate signals include a remaining public or self-test failure, a final edit that has no fresh test result, and an explicit unresolved requirement. An escalated case would receive Sol review and another Luna revision. Every group would use the same independent final acceptance suite.
+Use Luna self-review as the default and define escalation rules before running the comparison. The offline failure had fresh green checks and a cross-format self-test, but the test changed the signing configuration as well as the format. It missed the case where signature verification succeeds under the target configuration while payload decoding fails. The next design links each required behavior to concrete test inputs, assertions, and fresh results. An escalated case would receive Sol review and another Luna revision. Every group would use the same independent final acceptance suite.
 
 Compare self-review only, independent review on every task, and review on escalation. Record escalation frequency, full passes, newly introduced failures, known estimated costs, and interrupted attempts. Check false negatives using the offline grades, especially cases where the available checks pass while a hidden requirement fails. The runtime router would use evidence available during the run. Final acceptance outcomes would be reserved for analysis.
 
@@ -41,5 +41,6 @@ The English summaries below explain the purpose of each plan. Links point to the
 | [015](../decisions/015-revision-model-comparison.md) | Compare Sol and Luna revising the same saved implementation with the same review feedback. |
 | [016](../decisions/016-planned-self-tests-and-review.md) | Give the executor self-test tools, compare review assignments, and add the updated Sol single-agent baseline. |
 | [017](../decisions/017-role-flexibility-and-permissions.md) | Compare strict and flexible role permissions under the same model assignment. |
+| [018](../decisions/018-review-routing.md) | Replay escalation signals offline and identify gaps in the available test evidence before designing a live comparison. |
 
 When adding a decision, describe the question, experiment design, observed results, costs, and remaining uncertainty. Use the saved run configuration for exact execution settings. Keep interrupted attempts in the accounting and distinguish a proposed change from one that has been implemented or tested.

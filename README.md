@@ -43,13 +43,14 @@ These comparisons used four related Python development tasks involving ItsDanger
 | Sol alone with self-tests, one run per task | 4/4 | $2.476 |
 | Sol plans, Luna implements and self-reviews, first run per task | 4/4 | $0.447 |
 | Sol plans, Luna implements and self-reviews, three runs per task | 11/12 | $1.357 |
+| Luna plans, implements and self-reviews with a role handoff, three runs per task | 8/12 | $0.585 |
 | Sol plans and independently reviews, Luna implements and revises | 12/12 | $3.869 |
 | Strict role permissions | 11/12 | $3.961 |
 | Flexible role permissions | 11/12 | $5.088 |
 
 The four-task Sol-to-Luna handoff cost about **82% less** than the separately run Sol baseline, with both passing all four tasks. With three repeats, independent Sol review added one full pass at about **2.85 times** the cost of Luna self-review. Flexible permissions cost **28.5% more** than strict permissions with the same number of full passes.
 
-The sample is small and drawn from development tasks. See the [results and interpretation](docs/en/results.md) for denominators, interrupted attempts, and the limits of each comparison.
+The sample is small and drawn from development tasks. The [architecture results overview](docs/en/results.md#architecture-results-at-a-glance) lists current and earlier workflows with their denominators, costs, and batch conditions.
 
 ## Documentation
 
