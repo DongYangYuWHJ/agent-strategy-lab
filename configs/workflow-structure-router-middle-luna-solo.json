@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "backend": "opencode",
+  "workflow": "workflows/plan-execute-review-self-tests.json",
+  "architectures": [
+    {
+      "id": "luna-solo",
+      "strategy": "single_agent",
+      "models": ["gpt-6-luna"]
+    }
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "2.00",
+  "limits": {
+    "max_calls": null,
+    "max_tool_steps": null,
+    "max_repairs": null,
+    "max_no_progress": null,
+    "max_total_tokens": null,
+    "max_request_bytes": null,
+    "max_estimated_input_tokens": null,
+    "max_seconds": null,
+    "request_timeout_seconds": null,
+    "token_count_timeout_seconds": null,
+    "check_timeout_seconds": null,
+    "max_cost_usd": null
+  },
+  "catalog": "models-python-calibration-repeat.json",
+  "tasks": [
+    "../benchmarks/router-middle-v1/tasks/python-tomlkit-dotted-table-roundtrip/task.json",
+    "../benchmarks/router-middle-v1/tasks/python-packaging-dependency-group-errors/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-tinydb-snapshots/task.json"
+  ]
+}

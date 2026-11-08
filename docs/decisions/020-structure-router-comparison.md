@@ -2,7 +2,7 @@
 
 审查 Router 的试跑遇到了验证瓶颈。现有任务和对照配置下，三组均为 3/3 通过，按需组又全部触发了 Sol 审查，其中一次只由测试引用格式触发。这批数据能说明升级行为和开销，但无法有效检验审查能补救哪些失败，也无法检验 Router 能否识别这些情况。因此先转向任务 Router，研究能否在规划前选择合适的架构，并在不同难度的任务上兼顾通过率和总费用。[Plan19 审查 Router 结果](019-task-and-review-routers.md)
 
-状态：实现和离线验证已完成，付费对照运行中。
+首轮架构对照、Luna 单体基线和两档 Router 试跑均已完成。下一轮使用 14 道混合难度任务比较总费用。
 
 ## Structure Router 首轮对照
 
@@ -16,7 +16,7 @@ Structure Router 已接入批次入口。Luna 在规划前读取原始任务、�
 | 中 | Gravity、游标分页 |
 | 高 | Plan16 的令牌迁移、签名组合、缓存原子更新、缓存组合 |
 
-每次路由决定保存为 `structure-routing.json`。批次报告按档位和组别分别列出通过、有效验收、路由费用及整段费用。配置与固定回复验证完成，付费对照待运行。
+每次路由决定保存为 `structure-routing.json`。批次报告按档位和组别分别列出通过数、有效验收数、路由费用及整段费用。
 
 [实验配置](../../configs/workflow-structure-router-comparison.json) · [路由实现](../../src/agent_lab/structure_router.py)
 
@@ -24,4 +24,57 @@ Structure Router 已接入批次入口。Luna 在规划前读取原始任务、�
 
 首次启动完成一次 Luna 路由调用，估算费用为 0.000141700 美元。旧权限审计将审计前已完成的路由调用当成 OpenCode 提前生成，首题在实施前停止，无有效验收。修复后，审计检查的是审计期间是否出现新增生成调用。权限与路由相关的 8 项本地测试通过。
 
-新批次从原 5 美元上限扣除首笔费用，剩余额度为 4.999858300 美元。重新启动后，首题通过 OpenCode 权限审计并进入规划阶段。[首次记录](../../artifacts/plan20-structure-router-live-01/live/batch.json) · [当前批次](../../artifacts/plan20-structure-router-live-02/live/batch.json)
+新批次从原 5 美元上限扣除首笔费用，剩余额度为 4.999858300 美元。重新启动后，首题通过 OpenCode 权限审计并进入规划阶段。[首次记录](../../artifacts/plan20-structure-router-live-01/live/batch.json) · [第二批次](../../artifacts/plan20-structure-router-live-02/live/batch.json)
+
+## 首轮 Router 结果
+
+Windows 重启中断实验时已完成 10 项。保留这些结果，在剩余预算内补齐 6 项。两组各有 8 项有效验收，费用为用量与冻结费率的估算。
+
+| 难度 | 固定 Sol 规划通过数 | 固定组费用 USD | Router 通过数 | Router 组费用 USD |
+|---|---:|---:|---:|---:|
+| 低 | 2/2 | 0.059085 | 2/2 | 0.021034 |
+| 中 | 2/2 | 0.089827 | 2/2 | 0.048177 |
+| 高 | 3/4 | 0.482732 | 2/4 | 0.464045 |
+| 合计 | **7/8** | **0.631644** | **6/8** | **0.533255** |
+
+- 低、中难度两组均为 4/4 通过，Router 组总费用低约 54%。Router 在八题中选了三次 Luna 单体、五次 Sol 规划，未选 Luna 规划交接。路由调用本身估算为 0.001329 美元，已计入表内。
+- 四道高难度题在两组都由 Sol 规划，Luna 实施、自查和修正。Router 组少通过的一题无法归因于架构选择。每题每组只有一次有效结果。
+- 计入权限审计停止和 Windows 重启中断的尝试，已知估算总费用为 1.234638 美元，另有 0.068327 美元未确认用量预留。[合并逐题报告](../../artifacts/plan20-structure-router-live-03/comparison.md)
+
+## 中档候选题的 Luna 单体基线
+
+沿用 Plan20 的 Luna 模型配置和四轮工作流。新增 TOMLKit 与 Packaging 两道仓库题，搭配已接入的 TinyDB 快照题。三题各取得一次有效验收，全部通过。
+
+| 任务 | 通过场景 | 模型调用 | 耗时 | 估算费用 USD |
+|---|---:|---:|---:|---:|
+| Packaging 依赖组错误 | 9/9 | 28 | 3 分 42 秒 | 0.023110 |
+| TOMLKit 配置往返 | 6/6 | 35 | 4 分 28 秒 | 0.030025 |
+| TinyDB 快照恢复 | 63/63 | 51 | 9 分 53 秒 | 0.065691 |
+| 合计 | **3/3 题通过** | **114** | **18 分 03 秒** | **0.118826** |
+
+首批空的 `limits` 配置启用了默认 12 次调用上限，三题均在最终验收前停止，费用为 0.030158 美元。显式对齐 Plan20 的额度后，每题补跑一次。两批合计估算 0.148984 美元，用量完整。现有结果支持把三题用于观察是否过度升级。TinyDB 单体也通过了，但调用次数和耗时明显高于另外两题。[配置](../../configs/workflow-structure-router-middle-luna-solo.json) · [首批报告](../../artifacts/structure-router-middle-luna-solo-live-01/live/report.md) · [补跑报告](../../artifacts/structure-router-middle-luna-solo-live-02/live/report.md)
+
+## 两档 Router 的选择
+
+首轮 Router 实际只用了两条路径，新加入的三道候选题也都由 Luna 单体通过。因此两档 Router 只保留两个候选架构：
+
+- **低成本档 `luna-solo`**。同一个 Luna 完成规划、实施、自查和修正。
+- **强化档 `sol-luna-self-tests`**。Sol 负责规划，同一个 Luna 负责后续实施、自查和修正。
+
+两档 Router 与固定 Luna 单体、固定 Sol 规划加 Luna 自查组成三组对照，使用相同任务、四轮工作流和独立验收。用已通过的候选题观察是否过度升级，优先从已有结果中挑少量两条固定路径表现有差异的题来观察漏升级。主要比较最终通过数和总费用，路由费用计入整段成本，耗时单列。
+
+两档试跑的 7 项新增运行均通过验收。Router 在四道题上全选了 Sol 规划。三道中档题三组均为 3/3 通过，Router 组估算 0.283636 美元，固定 Sol 规划组为 0.278991 美元，相差约 1.7%。固定 Luna 单体为 0.118826 美元。缓存原子更新题的 Router 和固定 Sol 规划都通过，同配置的 Luna 单体记录仍缺失。[两档试跑报告](../../artifacts/plan20-two-tier-router-live-01/comparison.md)
+
+## 14 题混合难度对照
+
+前两轮的任务数量和难度配比限制了对 Router 整体效果的判断。首轮八题里有四道困难题，低、中难度各只有两道。两档试跑则只有三道中档和一道困难题，Router 全部选择 Sol 规划，因此这轮几乎相同的费用主要反映了两组使用同一架构。要衡量日常任务里简单题占多数时的总开销，需要覆盖更多适合 Luna 单体的任务。
+
+因此将任务集扩为 8 道简单、4 道中档、2 道困难。简单题用于观察 Router 是否能选用 Luna 单体，中、困难题用于观察升档选择和通过数。沿用现有题目、两条候选架构和四轮流程。难度标签只用于分组报告，LiveCodeBench 留出集继续保留。
+
+| 难度 | 数量 | 任务 |
+|---|---:|---|
+| 简单 | 8 | Happy New Year 2025、9x9 Sum、Geometric Sequence、Seek Grid、分页边界、HTTP 重试、超时配置、笔记软删除与恢复 |
+| 中档 | 4 | Gravity、TOMLKit 配置往返、Packaging 依赖组错误、TinyDB 快照恢复 |
+| 困难 | 2 | Cachetools 缓存原子更新、ItsDangerous 签名策略与迁移组合 |
+
+主对照为两档 Router 和固定 Sol 规划加 Luna 自查，每题每组一次。固定 Luna 单体用于补充质量和费用参照。旧结果须匹配任务指纹、模型、角色提示、四轮工作流和配置额度，Router 还须匹配候选架构与路由提示。当前主对照 28 个位置可复用 12 个，待跑 16 个。固定 Luna 单体可复用 3 个，待跑 11 个。报告按同题配对汇总整体费用、分档费用、通过数及耗时，并单列异常和路由开销。[14 题配置](../../configs/workflow-structure-router-two-tier-mixed.json) · [逐题复用清单](../../artifacts/plan20-two-tier-mixed-preflight-01/coverage.json)

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "python-tomlkit-dotted-table-roundtrip",
+  "description": "Fix TOMLKit document editing so adding a top-level scalar after promoting a dotted key to a nested table preserves field scope on serialization.",
+  "acceptance": [
+    "After parsing a document with dotted keys, adding a child table and then assigning a root scalar must serialize to valid TOML. Reparsing must keep the new scalar at the root and preserve the nested tables and their values.",
+    "The behavior must also work with deeper dotted keys, more than one new scalar, and existing root scalars or regular tables.",
+    "Keep the existing text and key order when appending a scalar to a document whose dotted keys still render inline. Preserve existing comments and values in unchanged lines.",
+    "Keep the public parse/dumps and mapping APIs. Do not modify the read-only app.py adapter."
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "tomlkit/__init__.py",
+    "tomlkit/_compat.py",
+    "tomlkit/_types.py",
+    "tomlkit/_utils.py",
+    "tomlkit/api.py",
+    "tomlkit/container.py",
+    "tomlkit/exceptions.py",
+    "tomlkit/items.py",
+    "tomlkit/parser.py",
+    "tomlkit/source.py",
+    "tomlkit/toml_document.py",
+    "tomlkit/toml_file.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

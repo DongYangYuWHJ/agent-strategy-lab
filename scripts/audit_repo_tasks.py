@@ -14,8 +14,8 @@ from agent_lab.workspace import Workspace
 def control_patches(folder, task):
     reference = {p.relative_to(folder / "operator/reference").as_posix(): p.read_text(encoding="utf-8")
                  for p in (folder / "operator/reference").rglob("*.py")}
-    if set(reference) != set(task.editable_files):
-        raise ValueError("Reference patch must match the declared editable files")
+    if not reference or not set(reference) <= set(task.editable_files):
+        raise ValueError("Reference patch must edit at least one declared editable file and no other files")
     controls = [("starter", {}, False, False), ("reference", reference, True, True)]
     for path in sorted((folder / "operator/mutants").glob("*.json")):
         mutant = read_json(path)

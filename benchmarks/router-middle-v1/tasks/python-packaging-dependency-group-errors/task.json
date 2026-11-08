@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "id": "python-packaging-dependency-group-errors",
+  "description": "Fix Packaging dependency-group validation so malformed requirement strings are reported together with other errors from the group.",
+  "acceptance": [
+    "Use the existing grouped-error contract for malformed dependency groups. An invalid requirement string must appear as an InvalidRequirement inside the ExceptionGroup, even when it is the only problem.",
+    "Report all errors among the items of the malformed group, including malformed include objects and multiple invalid requirement strings. This applies to lookup, resolution, and a malformed group reached through otherwise valid includes.",
+    "Preserve the order and duplicates of valid expanded requirements. Lookup must keep unresolved includes, and resolution must still detect cycles and missing groups.",
+    "Keep public APIs and the existing error types. Do not modify the read-only app.py adapter."
+  ],
+  "source_dir": "source",
+  "editable_files": [
+    "packaging/__init__.py",
+    "packaging/_elffile.py",
+    "packaging/_manylinux.py",
+    "packaging/_musllinux.py",
+    "packaging/_parser.py",
+    "packaging/_ranges.py",
+    "packaging/_structures.py",
+    "packaging/_tokenizer.py",
+    "packaging/dependency_groups.py",
+    "packaging/direct_url.py",
+    "packaging/errors.py",
+    "packaging/licenses/__init__.py",
+    "packaging/licenses/_spdx.py",
+    "packaging/markers.py",
+    "packaging/metadata.py",
+    "packaging/pylock.py",
+    "packaging/ranges.py",
+    "packaging/requirements.py",
+    "packaging/specifiers.py",
+    "packaging/tags.py",
+    "packaging/utils.py",
+    "packaging/version.py"
+  ],
+  "public_check": "public_check.py",
+  "final_check": "final_check.py"
+}

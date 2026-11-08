@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "id": "router-middle-v1",
+  "split": "development",
+  "tasks": [
+    {
+      "id": "python-tomlkit-dotted-table-roundtrip",
+      "manifest": "tasks/python-tomlkit-dotted-table-roundtrip/task.json",
+      "difficulty": "middle-candidate",
+      "public_scenarios": 2,
+      "final_scenarios": 6,
+      "source": {
+        "repo": "python-poetry/tomlkit",
+        "pull": "https://github.com/python-poetry/tomlkit/pull/550",
+        "baseline": "21a4942ed31e773061c9fc047d55b1bb3c637ee3",
+        "reference": "495a42ecc9119eaaeb895def0fd025a71cd1cf60",
+        "title": "Fix top-level scalar captured by a table rendered from a dotted key",
+        "baseline_sha256": "b7ac0a9ebdc92bb30862172ff7851d68acb582bb97971a7e68f0ccdc5bea3c89",
+        "reference_sha256": "80d98384bd0e63c604ebe17ee85fc9533436ba3ecb5d1183ccb32d4af6c577ad"
+      }
+    },
+    {
+      "id": "python-packaging-dependency-group-errors",
+      "manifest": "tasks/python-packaging-dependency-group-errors/task.json",
+      "difficulty": "middle-candidate",
+      "public_scenarios": 2,
+      "final_scenarios": 9,
+      "source": {
+        "repo": "pypa/packaging",
+        "pull": "https://github.com/pypa/packaging/pull/1302",
+        "baseline": "cf100d20e09c270cb6e19e72edbd0d40728de501",
+        "reference": "30824d9e3b33372a81af5e7a1d7e2ceb95e348c6",
+        "title": "fix(dependency_groups): collect InvalidRequirement instead of leaking it",
+        "baseline_sha256": "0c4f2cc4082be2281267785d1235047bcc4c191b671142086ae17ec919e35c40",
+        "reference_sha256": "1b40e28845ca26aed3c0589db7a4e363628753d25670a4774344b8be094117a7"
+      }
+    }
+  ]
+}

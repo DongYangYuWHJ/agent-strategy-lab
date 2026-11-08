@@ -46,6 +46,6 @@ The English summaries below explain the purpose of each plan. Links point to the
 | [017](../decisions/017-role-flexibility-and-permissions.md) | Compare strict and flexible role permissions under the same model assignment. |
 | [018](../decisions/018-review-routing.md) | Replay escalation signals offline and identify gaps in the available test evidence before designing a live comparison. |
 | [019](../decisions/019-task-and-review-routers.md) | Separate task routing before planning from review routing before delivery, and define the comparison for each. |
-| [020](../decisions/020-structure-router-comparison.md) | After the review pilot exposed an evaluation bottleneck, compare Luna-selected workflows against fixed Sol planning on eight tasks across three tiers. The paid comparison is pending. |
+| [020](../decisions/020-structure-router-comparison.md) | Completed the first task-routing comparison and a Luna solo baseline on three additional tasks. The next comparison gives the router two choices, Luna solo and Sol planning with Luna implementation and self-review. |
 
 When adding a decision, describe the question, experiment design, observed results, costs, and remaining uncertainty. Use the saved run configuration for exact execution settings. Keep interrupted attempts in the accounting and distinguish a proposed change from one that has been implemented or tested.
