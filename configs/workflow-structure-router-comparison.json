@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "backend": "opencode",
+  "workflow": "workflows/plan-execute-review-self-tests.json",
+  "architectures": [
+    {
+      "id": "luna-solo",
+      "strategy": "single_agent",
+      "models": [
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "id": "luna-luna-self-tests",
+      "strategy": "planner_handoff",
+      "models": [
+        "gpt-6-luna",
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "id": "sol-luna-self-tests",
+      "strategy": "planner_handoff",
+      "models": [
+        "gpt-6.1-sol",
+        "gpt-6-luna"
+      ]
+    }
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "5.00",
+  "limits": {
+    "max_calls": null,
+    "max_tool_steps": null,
+    "max_repairs": null,
+    "max_no_progress": null,
+    "max_total_tokens": null,
+    "max_request_bytes": null,
+    "max_estimated_input_tokens": null,
+    "max_seconds": null,
+    "request_timeout_seconds": null,
+    "token_count_timeout_seconds": null,
+    "check_timeout_seconds": null,
+    "max_cost_usd": null
+  },
+  "catalog": "models-python-calibration-repeat.json",
+  "tasks": [
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc390-b/task.json",
+    "../benchmarks/repo-workflows-v1/tasks/repo-page-boundaries/task.json",
+    "../benchmarks/livecodebench-v2/tasks/lcb-abc391-d/task.json",
+    "../benchmarks/repo-workflows-v1/tasks/repo-cursor-pagination/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-itsdangerous-token-migration/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-itsdangerous-integrated/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-cachetools-atomic-update/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-cachetools-integrated/task.json"
+  ],
+  "task_tiers": {
+    "lcb-abc390-b": "low",
+    "repo-page-boundaries": "low",
+    "lcb-abc391-d": "medium",
+    "repo-cursor-pagination": "medium",
+    "python-itsdangerous-token-migration": "high",
+    "python-itsdangerous-integrated": "high",
+    "python-cachetools-atomic-update": "high",
+    "python-cachetools-integrated": "high"
+  },
+  "structure_router": {
+    "model": "gpt-6-luna",
+    "baseline": "sol-luna-self-tests",
+    "choices": {
+      "luna-solo": "One Luna agent handles every turn. Prefer for local changes with clear behavior and straightforward verification.",
+      "luna-luna-self-tests": "Luna plans, then a Luna executor implements, reviews and revises in the same conversation. Prefer when explicit planning across steps or files is useful.",
+      "sol-luna-self-tests": "Sol plans, then a Luna executor implements, reviews and revises. Prefer when several interacting requirements or consequential edge cases warrant stronger planning."
+    }
+  }
+}

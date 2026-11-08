@@ -27,6 +27,7 @@ from .telemetry import Recorder
 from .workflow_gateway import Gateway, serve_gateway
 from .workflows import SYSTEM, ARCHITECTURE_MODEL_COUNTS, primary_schedule, effective_workflow, REVIEW_ROUTING
 from .review_router import decide_review
+from .structure_router import select_structure
 from .workspace import Workspace, file_hash, inventory
 
 
@@ -197,6 +198,7 @@ class OpenCodeSession:
     def __init__(self, url, password, workspace, directory, models, strategy, gateway):
         self.url, self.password, self.workspace = url, password, workspace
         self.directory, self.gateway = directory, gateway
+        calls_before_audit = gateway.ledger.calls
         ids = role_ids(strategy)
         self.main = ids["solo"] if strategy == "single_agent" else ids["planner"]
         query = urllib.parse.urlencode({"location.directory": str(workspace.root)})
@@ -235,7 +237,7 @@ class OpenCodeSession:
                     save_json(directory / "permission-audit.json", audit)
                     if effect != probe["expected"]:
                         raise PermissionConfigurationError(f"Effective permission mismatch: {name}: {probe['action']}")
-            if gateway.ledger.calls:
+            if gateway.ledger.calls != calls_before_audit:
                 raise PermissionConfigurationError("Generation occurred before permission audit completed")
             audit["passed"] = True
             save_json(directory / "permission-audit.json", audit)
@@ -349,7 +351,7 @@ def review_reply(messages):
     return text
 
 
-def run_workflow(task, models, limits, output, workflow, strategy="single_agent", session_factory=OpenCodeSession, role_prompts=None):
+def run_workflow(task, models, limits, output, workflow, strategy="single_agent", session_factory=OpenCodeSession, role_prompts=None, structure_routing=None):
     workflow = effective_workflow(strategy, workflow)
     if strategy not in ARCHITECTURE_MODEL_COUNTS or len(models) != ARCHITECTURE_MODEL_COUNTS[strategy]:
         raise ValueError("Workflow architecture has an invalid model assignment")
@@ -362,7 +364,11 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
     recorder = Recorder(directory)
     workspace = Workspace(task, directory)
     checks = Checks(task, directory, workspace, limits.check_timeout_seconds)
-    gateway = Gateway(task, models, limits, directory, recorder, workspace, checks)
+    available = models
+    if structure_routing:
+        router, choices, candidates, frozen_prompts = structure_routing
+        available = list({m.id: m for m in [router, *(m for _, group in candidates.values() for m in group)]}.values())
+    gateway = Gateway(task, available, limits, directory, recorder, workspace, checks)
     gateway.flexible = strategy.endswith('_flexible')
     started_at = now()
     started = time.monotonic()
@@ -373,10 +379,12 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
         "limits": asdict(limits), "strategy": {"name": strategy, "version": 1}, "workflow": asdict(workflow),
         "token_policy": {m.id: {"max_output_tokens": m.max_output_tokens,
                                "enforce_total_token_limit": m.enforce_total_token_limit,
-                               "output_reserve_tokens": m.output_reserve_tokens} for m in models},
+                               "output_reserve_tokens": m.output_reserve_tokens} for m in available},
         "system_prompt": SYSTEM, "role_prompts": role_prompts, "execution_kind": "live",
         "agent_ids": role_ids(strategy), "permission_policy": PERMISSION_POLICY_VERSION,
-        "token_counting": {m.id: gateway.clients[m.id].token_counting_info() for m in models}}
+        "token_counting": {m.id: gateway.clients[m.id].token_counting_info() for m in available}}
+    if structure_routing:
+        configuration["structure_router"] = {"model": asdict(router), "choices": choices}
     save_json(directory / "config.json", configuration)
     save_json(directory / "task.json", task.public_contract())
     turns = []
@@ -388,6 +396,20 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
                            "updated_at": now(), "accounting": gateway.ledger.summary()})
         recorder.event("phase", phase=phase, turn=gateway.turn)
     try:
+        if structure_routing:
+            state("structure_routing")
+            decision = select_structure(gateway, task, router, choices)
+            save_json(directory / "structure-routing.json", decision)
+            recorder.event("structure_routing", **decision)
+            selected, models = candidates[decision["architecture"]]
+            strategy = selected["strategy"]
+            schedule = primary_schedule(strategy, workflow)
+            role_prompts = frozen_prompts[decision["architecture"]]
+            configuration.update(model=asdict(models[0]), models=[asdict(m) for m in models],
+                                 strategy={"name": strategy, "version": 1},
+                                 role_prompts=role_prompts, agent_ids=role_ids(strategy),
+                                 structure_selection=decision)
+            save_json(directory / "config.json", configuration)
         with serve_gateway(gateway) as gateway_url:
             config = opencode_config(models, gateway_url, limits, strategy, role_prompts)
             config_path = workspace.root / "opencode.jsonc"

@@ -135,7 +135,8 @@ def main(argv=None):
             else:
                 for task in tasks:
                     print(f"{task.id}: {task.description.splitlines()[0]}")
-                print(f"共 {len(tasks)} 个任务；当前配置计划 {len(tasks) * len(models) * repeats} 次运行。")
+                arms = 2 if read_json(args.experiment).get("structure_router") else len(models)
+                print(f"共 {len(tasks)} 个任务；当前配置计划 {len(tasks) * arms * repeats} 次运行。")
         return 0
     except (ValueError, KeyError, TypeError, OSError) as exc:
         print(f"错误：{exc}", file=sys.stderr)

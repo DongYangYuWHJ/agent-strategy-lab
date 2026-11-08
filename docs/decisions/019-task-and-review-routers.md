@@ -71,3 +71,5 @@
 事后按分隔符拆开引用，并核对每项引用都存在，原三次决定会变成两次升级。这个离线诊断说明格式和实际覆盖缺口需要分开记录。它没有执行新的审查或验收，也不能确定改规则后的整段费用或质量。
 
 [试跑报告](../../artifacts/plan19-review-router-pilot-01/live/report.md)
+
+任务 Router 的实现和首轮对照另见 [Plan20](020-structure-router-comparison.md)。

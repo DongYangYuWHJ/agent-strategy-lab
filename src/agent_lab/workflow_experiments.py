@@ -13,6 +13,23 @@ from .reporting import collect_results, write_report
 from .runner import task_fingerprint
 from .workflows import Workflow, ARCHITECTURE_MODEL_COUNTS, primary_schedule, effective_workflow
 from .workspace import inventory
+from .structure_router import ROUTED_ARM, ROUTER_PROMPT, write_structure_report
+
+
+def structure_config(raw, architectures, catalog, model_filter):
+    route = raw.get("structure_router")
+    if route is None:
+        return None
+    ids = {arch["id"] for arch, _ in architectures}
+    if (model_filter is not None or not isinstance(route, dict)
+            or set(route) != {"model", "baseline", "choices"}
+            or ROUTED_ARM in ids or route["baseline"] not in ids
+            or not isinstance(route["choices"], dict) or set(route["choices"]) != ids
+            or any(not isinstance(value, str) or not value.strip() for value in route["choices"].values())
+            or any(arch["strategy"] not in {"single_agent", "planner_handoff"} for arch, _ in architectures)
+            or catalog[route["model"]].provider != "openai"):
+        raise ValueError("Invalid structure router configuration")
+    return route
 
 
 def load_workflow_experiment(path, catalog, model_filter=None):
@@ -45,19 +62,30 @@ def load_workflow_experiment(path, catalog, model_filter=None):
     if type(repeats) is not int or not 1 <= repeats <= 100 or type(seed) is not int:
         raise ValueError("Invalid repeats or seed")
     budget = raw["batch_budget_usd"]
+    if structure_config(raw, architectures, catalog, model_filter):
+        tiers = raw.get("task_tiers", {})
+        if (not isinstance(tiers, dict) or not set(tiers) <= {t.id for t in tasks}
+                or any(tier not in ("low", "medium", "high") for tier in tiers.values())):
+            raise ValueError("Invalid structure router task tiers")
     return tasks, architectures, workflow, Limits(**raw.get("limits", {})), repeats, seed, money(budget) if budget is not None else None
 
 
 def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
     tasks, architectures, workflow, limits, repeats, seed, budget = load_workflow_experiment(path, catalog, model_filter)
+    raw = read_json(path)
+    route = structure_config(raw, architectures, catalog, model_filter)
     counters = {}
     for _, models in architectures:
         for model in models:
             counters[model.id] = make_provider(model, "", "", [], tasks[0]).token_counting_info()
-    plan = [{"cell": f"{t.id}:{a['id']}:{r}", "task": t.id, "architecture": a["id"], "repeat": r}
-            for r in range(repeats) for t in tasks for a, _ in architectures]
+    if route and route["model"] not in counters:
+        model = catalog[route["model"]]
+        counters[model.id] = make_provider(model, "", "", [], tasks[0]).token_counting_info()
+    arms = [route["baseline"], ROUTED_ARM] if route else [a["id"] for a, _ in architectures]
+    plan = [{"cell": f"{t.id}:{arm}:{r}", "task": t.id, "architecture": arm, "repeat": r}
+            for r in range(repeats) for t in tasks for arm in arms]
     random.Random(seed).shuffle(plan)
-    skipped = read_json(path).get('skip_cells', [])
+    skipped = raw.get('skip_cells', [])
     if (not isinstance(skipped, list) or len(set(skipped)) != len(skipped)
             or not set(skipped) <= {c['cell'] for c in plan}):
         raise ValueError('skip_cells must contain distinct planned cell IDs')
@@ -73,6 +101,9 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
                 "limits": asdict(limits), "seed": seed, "plan": plan, "batch_budget_usd": str(budget) if budget is not None else None}
     if skipped:
         identity['skip_cells'] = skipped
+    if route:
+        identity["structure_router"] = {**route, "catalog": asdict(catalog[route["model"]]),
+                                        "prompt": ROUTER_PROMPT, "task_tiers": raw.get("task_tiers", {})}
     if any(a['strategy'].endswith('_flexible') for a, _ in architectures):
         identity['architecture_workflows'] = {a['id']: asdict(effective_workflow(a['strategy'], workflow)) for a, _ in architectures}
     output = output.resolve()
@@ -110,7 +141,8 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
             task = task_map[cell["task"]]
             if task_fingerprint(task) != identity["task_fingerprints"][task.id]:
                 raise ValueError("Task changed during workflow batch")
-            arch, models = arch_map[cell["architecture"]]
+            routed = route and cell["architecture"] == ROUTED_ARM
+            arch, models = arch_map[route["baseline"] if routed else cell["architecture"]]
             if workflow_role_prompts(arch["strategy"]) != identity["role_prompts"][arch["id"]]:
                 raise ValueError("Role instructions changed during workflow batch")
             fee_bounds = ([money(limits.max_cost_usd)] if limits.max_cost_usd is not None else [])
@@ -119,8 +151,11 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
             effective = replace(limits, max_cost_usd=str(min(fee_bounds)) if fee_bounds else None)
             manifest["inflight"] = {cell["cell"]: cell}
             save_json(output / "batch.json", manifest)
-            result = run_workflow(task, models, effective, output / "runs", workflow, arch["strategy"],
-                                  role_prompts=identity["role_prompts"][arch["id"]])
+            options = {"role_prompts": identity["role_prompts"][arch["id"]]}
+            if routed:
+                options["structure_routing"] = (catalog[route["model"]], route["choices"], arch_map,
+                                                identity["role_prompts"])
+            result = run_workflow(task, models, effective, output / "runs", workflow, arch["strategy"], **options)
             manifest["completed"][cell["cell"]] = result["run_id"]
             manifest["inflight"] = {}
             save_json(output / "batch.json", manifest)
@@ -139,4 +174,6 @@ def run_workflow_batch(path, catalog, output, model_filter=None, resume=False):
         manifest["updated_at"] = now()
         save_json(output / "batch.json", manifest)
         write_report(output)
+        if route:
+            write_structure_report(output, manifest)
     return manifest
