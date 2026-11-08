@@ -3,9 +3,12 @@ from dataclasses import dataclass
 from .domain import read_json, safe_id
 
 
+REVIEW_ROUTING = {"review_never": "never", "review_rules": "rules", "review_always": "always"}
+
+
 ARCHITECTURE_MODEL_COUNTS = {"single_agent": 1, "planner_worker": 2,
                              "planner_handoff": 2, "planner_executor_reviewer": 3,
-                             "planner_executor_reviewer_flexible": 3}
+                             "planner_executor_reviewer_flexible": 3, **dict.fromkeys(REVIEW_ROUTING, 3)}
 
 
 def effective_workflow(strategy, workflow):
@@ -17,6 +20,12 @@ def effective_workflow(strategy, workflow):
 
 def primary_schedule(strategy, workflow):
     """Validate fixed handoffs before any generation; return role/model positions."""
+    if strategy in REVIEW_ROUTING:
+        expected = (("plan", False), ("implement", True), ("review", False), ("revise", True),
+                    ("independent-review", False), ("delivery", True))
+        if tuple((t.id, t.allow_write) for t in workflow.turns) != expected:
+            raise ValueError("Review routing requires the six declared workflow turns")
+        return (("planner", 0), ("worker", 1), ("worker", 1), ("worker", 1), ("reviewer", 2), ("worker", 1))
     if strategy == "planner_handoff":
         if len(workflow.turns) < 2 or workflow.turns[0].id != "plan" or workflow.turns[0].allow_write:
             raise ValueError("Planner handoff requires a read-only first plan turn and later executor turns")

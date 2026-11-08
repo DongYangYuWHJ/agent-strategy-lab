@@ -25,7 +25,8 @@ from .opencode_permissions import (PermissionConfigurationError, PERMISSION_POLI
 from .runner import task_fingerprint
 from .telemetry import Recorder
 from .workflow_gateway import Gateway, serve_gateway
-from .workflows import SYSTEM, ARCHITECTURE_MODEL_COUNTS, primary_schedule, effective_workflow
+from .workflows import SYSTEM, ARCHITECTURE_MODEL_COUNTS, primary_schedule, effective_workflow, REVIEW_ROUTING
+from .review_router import decide_review
 from .workspace import Workspace, file_hash, inventory
 
 
@@ -122,10 +123,10 @@ def workflow_role_prompts(strategy):
                  ('reviewer', 'independent review against original requirements')]}
     if strategy == "single_agent":
         return {"solo": SYSTEM + "\nDo not delegate."}
-    if strategy not in {"planner_worker", "planner_handoff", "planner_executor_reviewer"}:
+    if strategy not in REVIEW_ROUTING and strategy not in {"planner_worker", "planner_handoff", "planner_executor_reviewer"}:
         raise ValueError("Unsupported workflow strategy")
     root = Path(__file__).resolve().parents[2] / "roles"
-    if strategy == "planner_executor_reviewer":
+    if strategy in REVIEW_ROUTING or strategy == "planner_executor_reviewer":
         names = (("planner", "workflow-handoff-planner.md"), ("worker", "workflow-review-executor.md"),
                  ("reviewer", "workflow-reviewer.md"))
     elif strategy == "planner_handoff":
@@ -169,10 +170,10 @@ def opencode_config(models, gateway_url, limits, strategy, role_prompts=None):
         if limits.max_calls is not None:
             result["steps"] = limits.max_calls
         return result
-    executor_mode = "primary" if strategy in {"planner_handoff", "planner_executor_reviewer", "planner_executor_reviewer_flexible"} else "subagent"
+    executor_mode = "primary" if strategy in REVIEW_ROUTING or strategy in {"planner_handoff", "planner_executor_reviewer", "planner_executor_reviewer_flexible"} else "subagent"
     agents = ({main: agent("solo", models[0], "primary")} if strategy == "single_agent" else
               {main: agent("planner", models[0], "primary"), ids["worker"]: agent("worker", models[1], executor_mode)})
-    if strategy in {"planner_executor_reviewer", "planner_executor_reviewer_flexible"}:
+    if "reviewer" in ids:
         agents[ids["reviewer"]] = agent("reviewer", models[2], "primary")
     roles = list(ids)
     tool_timeouts = {"startup": 10000, "catalog": 10000}
@@ -379,6 +380,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
     save_json(directory / "config.json", configuration)
     save_json(directory / "task.json", task.public_contract())
     turns = []
+    turns_expected = len(workflow.turns)
     status, reason, final_evidence = "running", "", None
     def state(phase):
         recorder.snapshot({"schema_version": 1, "run_id": directory.name, "status": status,
@@ -436,7 +438,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
                                 raise StopRun("read_only_violation")
                             if readonly_tests is not None and readonly_tests != gateway.self_tests.fingerprint():
                                 raise StopRun("read_only_violation")
-                            if strategy in {"planner_executor_reviewer", "planner_executor_reviewer_flexible"} and role == "reviewer":
+                            if schedule and role == "reviewer":
                                 review = {"turn": turn.id, "role": role, "model_id": model.id,
                                           "text": review_reply(messages), "source": str((turn_dir / "messages.json").relative_to(directory))}
                                 save_json(directory / "review.json", review)
@@ -452,6 +454,21 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
                         save_json(turn_dir / "turn.json", item)
                         recorder.event("turn_completed", turn=turn.id, index=index)
                         state("between_turns")
+                        if strategy in REVIEW_ROUTING and index == 3:
+                            events = (json.loads(line) for line in recorder.events.read_text(encoding="utf-8").splitlines())
+                            try:
+                                reply = review_reply(messages)
+                            except StopRun as exc:
+                                if exc.reason != "missing_review":
+                                    raise
+                                reply = ""
+                            decision = decide_review(REVIEW_ROUTING[strategy], events, reply,
+                                                     len(task.acceptance), gateway.self_tests.fingerprint())
+                            save_json(directory / "routing.json", decision)
+                            recorder.event("review_routing", **decision)
+                            if not decision["escalated"]:
+                                turns_expected = len(turns)
+                                break
                     state("final_acceptance")
                     public = checks.run("public", gateway.remaining())
                     recorder.event("verification", kind="public", evidence=public)
@@ -488,7 +505,7 @@ def run_workflow(task, models, limits, output, workflow, strategy="single_agent"
         "started_at": started_at, "ended_at": now(), "duration_seconds": round(time.monotonic() - started, 6),
         "config_fingerprint": digest(configuration), "accounting": gateway.ledger.summary(),
         "turns": turns, "turns_completed": sum(t["status"] == "completed" for t in turns),
-        "turns_expected": len(workflow.turns), "final_evidence": final_evidence, "artifact_dir": str(directory)}
+        "turns_expected": turns_expected, "final_evidence": final_evidence, "artifact_dir": str(directory)}
     save_json(directory / "result.json", result)
     state("finished")
     recorder.event("run_finished", status=status, stop_reason=reason)

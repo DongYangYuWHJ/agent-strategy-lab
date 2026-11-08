@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "backend": "opencode",
+  "workflow": "workflows/review-routing.json",
+  "architectures": [
+    {
+      "id": "router-never",
+      "strategy": "review_never",
+      "models": [
+        "gpt-6-luna",
+        "gpt-6-luna",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "id": "router-rules",
+      "strategy": "review_rules",
+      "models": [
+        "gpt-6-luna",
+        "gpt-6-luna",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "id": "router-always",
+      "strategy": "review_always",
+      "models": [
+        "gpt-6-luna",
+        "gpt-6-luna",
+        "gpt-6.1-sol"
+      ]
+    }
+  ],
+  "repeats": 1,
+  "seed": 42,
+  "batch_budget_usd": "5.00",
+  "limits": {
+    "max_calls": null,
+    "max_tool_steps": null,
+    "max_repairs": null,
+    "max_no_progress": null,
+    "max_total_tokens": null,
+    "max_request_bytes": null,
+    "max_estimated_input_tokens": null,
+    "max_seconds": null,
+    "request_timeout_seconds": null,
+    "token_count_timeout_seconds": null,
+    "check_timeout_seconds": null,
+    "max_cost_usd": null
+  },
+  "task_globs": [
+    "../benchmarks/python-calibration-v1/tasks/python-tinydb-integrated/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-itsdangerous-token-policy/task.json",
+    "../benchmarks/python-calibration-v1/tasks/python-cachetools-resize/task.json"
+  ],
+  "catalog": "models-python-calibration-repeat.json"
+}

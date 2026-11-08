@@ -4,47 +4,15 @@ from collections import Counter
 import json
 from pathlib import Path
 import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from agent_lab.review_router import signals
 
 from summarize_review_comparison import public_reply, read
 
 
 GAP_MENTION = re.compile("未验证|未运行|未穷尽|覆盖缺口|未单独|仍未|尚未")
-
-
-def signals(events):
-    """Use the last check of each type and writes that occurred after it."""
-    last_checks = {}
-    last_source_write = last_test_write = -1
-    for event in events:
-        if event["type"] != "tool":
-            continue
-        tool = event["tool"]
-        result = event["result"]
-        sequence = event["sequence"]
-        if tool in ("run_checks", "run_self_tests"):
-            last_checks[tool] = event
-        elif result.get("ok") and tool in ("write_file", "edit_file"):
-            last_source_write = sequence
-        elif result.get("ok") and tool == "write_test":
-            last_test_write = sequence
-
-    outcome = {}
-    for name, tool, last_write in (
-        ("public", "run_checks", last_source_write),
-        ("self_test", "run_self_tests", max(last_source_write, last_test_write)),
-    ):
-        check = last_checks.get(tool)
-        if check is None:
-            outcome[name] = "missing"
-        elif check["sequence"] < last_write:
-            outcome[name] = "stale"
-        elif check["result"].get("passed") is not True:
-            outcome[name] = "failed_or_incomplete"
-        elif name == "public" and check["result"].get("completion_verified") is not True:
-            outcome[name] = "failed_or_incomplete"
-        else:
-            outcome[name] = "passed"
-    return outcome
 
 
 def audit(combined):

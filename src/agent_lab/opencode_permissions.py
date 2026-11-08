@@ -5,6 +5,7 @@ global rules. Require a universal reset followed only by our exact grants, then
 ask OpenCode itself to evaluate representative native/MCP/delegation actions.
 """
 from .workflow_gateway import role_tool_definitions
+from .workflows import REVIEW_ROUTING
 
 ROLE_AGENT_IDS = {"solo": "lab-experiment-solo", "planner": "lab-experiment-planner",
                   "worker": "lab-experiment-executor", "reviewer": "lab-experiment-reviewer"}
@@ -20,7 +21,7 @@ def role_ids(strategy):
         return {"solo": ROLE_AGENT_IDS["solo"]}
     if strategy in {"planner_worker", "planner_handoff"}:
         return {role: ROLE_AGENT_IDS[role] for role in ("planner", "worker")}
-    if strategy in {"planner_executor_reviewer", "planner_executor_reviewer_flexible"}:
+    if strategy in REVIEW_ROUTING or strategy in {"planner_executor_reviewer", "planner_executor_reviewer_flexible"}:
         return {role: ROLE_AGENT_IDS[role] for role in ("planner", "worker", "reviewer")}
     raise ValueError("Unsupported workflow strategy")
 
