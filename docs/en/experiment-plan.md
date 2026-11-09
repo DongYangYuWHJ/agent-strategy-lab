@@ -6,20 +6,14 @@ Agent Architecture Lab studies how model assignment, review, and tool permission
 
 ## Current state
 
-- **Planning, self-testing, and review.** Plan 16 completed the self-review versus independent-review comparison and a four-task Sol single-agent follow-up. The Sol-to-Luna handoff is the lower-cost observed configuration on the four-task follow-up. The independent-review group has the highest observed full-pass count in the repeated Plan 16 comparison. [Results](results.md)
+- **Planning and self-review.** In the paired Plan 16 follow-up, Sol alone and the Sol-to-Luna handoff both passed 4/4. The handoff cost about 82% less. Across three repeats, the handoff passed 11/12 with Luna self-review and 12/12 with independent Sol review. [Results](results.md#plan-16--self-review-and-independent-review)
 - **Role flexibility.** Plan 17 completed the strict and flexible comparisons. Both groups passed 11/12. Flexible permissions increased estimated cost in this batch. [Results](results.md#plan-17--strict-versus-flexible-permissions)
-- **Review routing.** Plan 18 replayed candidate escalation signals on 12 self-review traces. Failed, missing, or stale checks triggered no escalation and missed the only final acceptance failure. Adding broad gap-related keywords escalated all 12 runs. The live routing comparison remains proposed. [Plan 18](../decisions/018-review-routing.md)
-- **Two routing decisions.** Review routing uses verification evidence after implementation and self-review. Task routing selects a base workflow before planning. The review pilot had no baseline failures and escalated all three tasks in the rule arm, so the next comparison focuses on task routing. [Plan 19](../decisions/019-task-and-review-routers.md) · [Plan 20](../decisions/020-structure-router-comparison.md)
+- **Review routing.** Plan 18 replayed escalation signals on 12 self-review traces. In the live Plan 19 pilot, all baseline tasks passed and the rule escalated all three cases. This measured escalation behavior and cost. [Plan 18](../decisions/018-review-routing.md) · [Plan 19 results](results.md#plan-19--review-routing-pilot)
+- **Task routing.** The two-tier router chose Luna alone or Sol planning followed by Luna implementation, self-review, and revision. On 14 tasks it cost 25.3% less than fixed Sol planning, with 13/14 versus 14/14 passes. Fixed Luna alone matched the router's task outcomes at a lower estimated cost. [Plan 20 results](results.md#plan-20--two-tier-task-routing)
 
-## Proposed review-routing experiment
+## Evaluation scope
 
-Start all three arms with Luna planning, implementation, self-review, and initial revision. Keep the planner-to-executor handoff. In Plan 16, this configuration passed 8/12, compared with 11/12 when Sol planned. All four Luna-planner failures had passing final self-tests. The earlier offline replay used the Sol-planner traces.
-
-The first router is deterministic code. Luna supplies structured evidence linking required behaviors to test inputs, assertions, and fresh results. The runner checks the recorded test outcomes and their freshness. A frozen rule uses these inputs to decide whether to add Sol review and another Luna revision. Routing itself requires no additional model call. Every arm uses the same evidence instructions and independent final acceptance suite. [Plan 19](../decisions/019-task-and-review-routers.md)
-
-Compare self-review only, independent review on every task, and review on escalation. Record escalation frequency, full passes, newly introduced failures, known estimated costs, and interrupted attempts. Check false negatives using the offline grades, especially cases where the available checks pass while a hidden requirement fails. The runtime router would use evidence available during the run. Final acceptance outcomes would be reserved for analysis.
-
-Use a fresh development set to check the rules, then assess the frozen policy on tasks that were not used to select those rules. Record the model assignments, time and spend limits, and planned repeats before launch.
+The later comparisons evaluated fixed workflows on named task sets. Some tasks appear in multiple comparisons. The report identifies the tasks, repeat counts, and saved runs used in each comparison, including the fixed Luna solo follow-up on the 14-task mix.
 
 ## Decision history
 
@@ -46,6 +40,6 @@ The English summaries below explain the purpose of each plan. Links point to the
 | [017](../decisions/017-role-flexibility-and-permissions.md) | Compare strict and flexible role permissions under the same model assignment. |
 | [018](../decisions/018-review-routing.md) | Replay escalation signals offline and identify gaps in the available test evidence before designing a live comparison. |
 | [019](../decisions/019-task-and-review-routers.md) | Separate task routing before planning from review routing before delivery, and define the comparison for each. |
-| [020](../decisions/020-structure-router-comparison.md) | Completed the first task-routing comparison and a Luna solo baseline on three additional tasks. The next comparison gives the router two choices, Luna solo and Sol planning with Luna implementation and self-review. |
+| [020](../decisions/020-structure-router-comparison.md) | Completed the 14-task comparison of two-tier task routing, fixed Sol planning, and fixed Luna alone. |
 
 When adding a decision, describe the question, experiment design, observed results, costs, and remaining uncertainty. Use the saved run configuration for exact execution settings. Keep interrupted attempts in the accounting and distinguish a proposed change from one that has been implemented or tested.

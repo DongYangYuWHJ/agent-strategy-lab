@@ -39,7 +39,7 @@
 | [017](decisions/017-role-flexibility-and-permissions.md) | 严格分工与灵活分工 | 24个位置完成验收，两组均11/12，灵活组有效验收费用高28.5% | 区分整体方案与权限单独归因，记录实际分工，保留单Agent参照问题 |
 | [018](decisions/018-review-routing.md) | 按需升级审查 | 已回看12次自查轨迹，检查结果规则升级0次并漏掉1次失败，宽泛文本规则升级全部12次 | 验证具体场景的覆盖证据，区分可见信号与离线验收 |
 | [019](decisions/019-task-and-review-routers.md) | 任务 Router 与审查 Router | 审查试跑三组均3/3，按需组升级3/3，其中一次仅由引用格式触发 | 分开记录格式问题与实际覆盖缺口 |
-| [020](decisions/020-structure-router-comparison.md) | 任务 Router 与架构选择 | 首轮 Router 对照与 Luna 单体基线已完成，下一轮采用两档路由 | 对照 Luna 单体与 Sol 规划加 Luna 自查，比较通过数与总费用 |
+| [020](decisions/020-structure-router-comparison.md) | 两档任务 Router | 14 题三组对照均完成 | 相对固定 Sol 规划省 25.3%，相对固定 Luna 单体通过结果一致、费用更高 |
 
 ## 调参集为什么借鉴机器学习
 
