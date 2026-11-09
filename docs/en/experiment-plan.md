@@ -6,7 +6,7 @@ Agent Architecture Lab studies how model assignment, review, and tool permission
 
 ## Current state
 
-- **Planning and self-review.** In the paired Plan 16 follow-up, Sol alone and the Sol-to-Luna handoff both passed 4/4. The handoff cost about 82% less. Across three repeats, the handoff passed 11/12 with Luna self-review and 12/12 with independent Sol review. [Results](results.md#plan-16--self-review-and-independent-review)
+- **Planning and self-review.** Across three repeats on four tasks, Sol alone and the Sol-to-Luna handoff both passed 11/12. The handoff cost about 82% less. Independent Sol review passed 12/12 in the earlier Plan 16 review comparison. [Results](results.md#sol-single-agent-comparison-with-the-same-self-test-workflow)
 - **Role flexibility.** Plan 17 completed the strict and flexible comparisons. Both groups passed 11/12. Flexible permissions increased estimated cost in this batch. [Results](results.md#plan-17--strict-versus-flexible-permissions)
 - **Review routing.** Plan 18 replayed escalation signals on 12 self-review traces. In the live Plan 19 pilot, all baseline tasks passed and the rule escalated all three cases. This measured escalation behavior and cost. [Plan 18](../decisions/018-review-routing.md) · [Plan 19 results](results.md#plan-19--review-routing-pilot)
 - **Task routing.** The two-tier router chose Luna alone or Sol planning followed by Luna implementation, self-review, and revision. On 14 tasks it cost 25.3% less than fixed Sol planning, with 13/14 versus 14/14 passes. Fixed Luna alone matched the router's task outcomes at a lower estimated cost. [Plan 20 results](results.md#plan-20--two-tier-task-routing)
@@ -36,7 +36,7 @@ The English summaries below explain the purpose of each plan. Links point to the
 | [013](../decisions/013-task-discrimination-and-calibration.md) | Calibrate repository tasks and repeat baseline and handoff comparisons on four development tasks. |
 | [014](../decisions/014-planner-executor-reviewer.md) | Add independent review and inspect stage snapshots to distinguish original defects from revision regressions. |
 | [015](../decisions/015-revision-model-comparison.md) | Compare Sol and Luna revising the same saved implementation with the same review feedback. |
-| [016](../decisions/016-planned-self-tests-and-review.md) | Give the executor self-test tools, compare review assignments, and add the updated Sol single-agent baseline. |
+| [016](../decisions/016-planned-self-tests-and-review.md) | Give the executor self-test tools, compare review assignments, and complete three runs per task for the Sol single-agent baseline. |
 | [017](../decisions/017-role-flexibility-and-permissions.md) | Compare strict and flexible role permissions under the same model assignment. |
 | [018](../decisions/018-review-routing.md) | Replay escalation signals offline and identify gaps in the available test evidence before designing a live comparison. |
 | [019](../decisions/019-task-and-review-routers.md) | Separate task routing before planning from review routing before delivery, and define the comparison for each. |

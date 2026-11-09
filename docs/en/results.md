@@ -4,7 +4,7 @@
 
 ## Summary
 
-This project asks when a coding-agent workflow can lower estimated API cost while maintaining task acceptance. The main result comes from four paired repository tasks. Sol alone and a workflow with Sol planning followed by Luna implementation, self-review, and revision both passed **4/4**. The handoff cost **$0.447 versus $2.476**, about **82% less**. Costs for the planning turn were similar, and the later turns accounted for the savings. [Paired handoff results](#sol-single-agent-comparison-with-the-same-self-test-workflow)
+This project asks when a coding-agent workflow can lower estimated API cost while maintaining task acceptance. Across four repository tasks with three runs per task, Sol alone and a workflow with Sol planning followed by Luna implementation, self-review, and revision both passed **11/12**. The handoff cost **$1.357 versus $7.537**, about **82% less**, and took about eight minutes longer in total. In the first run per task, the two workflows incurred similar planning costs. The later turns accounted for the savings. [Paired handoff results](#sol-single-agent-comparison-with-the-same-self-test-workflow)
 
 The benefit depended on the workflow. In an early pilot, keeping Sol involved as the parent while also assigning a Sol executor cost **1.82 times** as much as Sol alone. An early handoff also delivered fewer complete passes than Sol alone across repeats. The later workflow explicitly planned tests, let the executor write and run them, and checked the final code with an independent acceptance suite. [Early delegation](../decisions/011-planner-executor.md) · [Early handoff](../decisions/013-task-discrimination-and-calibration.md) · [Later workflow](../decisions/016-planned-self-tests-and-review.md)
 
@@ -31,7 +31,7 @@ The sequence in each workflow is **plan → implement → review → revise**. A
 
 | Experiment | Models by turn | Condition | Full passes | Estimated cost of graded runs |
 |---|---|---|---:|---:|
-| Plan 16 follow-up | Sol → Sol → Sol → Sol | Single agent, one run per task | 4/4 (100%) | $2.476 |
+| Plan 16 follow-up | Sol → Sol → Sol → Sol | Single agent, three runs per task | 11/12 (91.7%) | $7.537 |
 | Plan 16 planner comparison | Luna → Luna → Luna → Luna | Planner-to-executor handoff with Luna in both roles | 8/12 (66.7%) | $0.585 |
 | Plan 16 DeepSeek follow-up | DeepSeek → DeepSeek → DeepSeek → DeepSeek | DeepSeek Flash low in both handoff roles, one run per task | 4/4 (100%) | $0.613 |
 | Plan 16 | Sol → Luna → Luna → Luna | Planner handoff, Luna self-review | 11/12 (91.7%) | $1.357 |
@@ -124,7 +124,21 @@ The DeepSeek run matched the Sol-to-Luna pass count at about 37% higher estimate
 
 ### Sol single-agent comparison with the same self-test workflow
 
-The follow-up ran Sol alone once per task. The handoff column uses the first preassigned repeat for each Plan 16 task. Both columns use the same four task prompts, self-test tools, and acceptance suite. They were run in separate batches.
+The completed comparison pairs four tasks across three runs per task and workflow. Both workflows use the same four-turn prompts, self-test tools, and acceptance suite. The Sol single-agent group retains its four original runs and adds eight runs using the same runner fingerprint and settings. The groups ran in separate batches.
+
+| Task | Sol alone passes | Sol alone USD | Handoff passes | Handoff USD |
+|---|---:|---:|---:|---:|
+| Token migration | 2/3 | 1.702547 | 2/3 | 0.334131 |
+| Integrated signing and migration | 3/3 | 2.148499 | 3/3 | 0.372929 |
+| Atomic update | 3/3 | 1.523084 | 3/3 | 0.300885 |
+| Integrated resize and rollback | 3/3 | 2.162822 | 3/3 | 0.349167 |
+| **Total** | **11/12** | **7.536952** | **11/12** | **1.357112** |
+
+The handoff cost **82.0% less**. Each group missed the same four cross-format cases in one token-migration run and passed every other run. Cumulative runtime was 70 minutes 41 seconds for Sol alone and 79 minutes 02 seconds for the handoff. The eight new Sol runs cost $5.060587 with complete usage. The repeats measure variation on four tasks. [Plan 16 repeat comparison](../decisions/016-planned-self-tests-and-review.md#sol-单体补齐三次重复2026-11-08)
+
+#### First run per task
+
+The original comparison used the first preassigned repeat for each task and workflow.
 
 | Task | Sol alone | Sol plans, Luna implements and self-reviews |
 |---|---:|---:|
@@ -135,7 +149,7 @@ The follow-up ran Sol alone once per task. The handoff column uses the first pre
 | **Full passes** | **4/4** | **4/4** |
 | **Estimated total** | **$2.476365** | **$0.446689** |
 
-The handoff cost about **82% less** in this four-pair comparison. Planning cost $0.270786 for Sol alone and $0.276100 for the handoff. The three remaining turns cost $2.205579 with Sol and $0.170590 with Luna. The handoff used 139 model calls versus 134 for Sol alone. The Sol baseline has one observation per task, while the complete handoff series passed 11/12. The observed cost difference and equal pass count apply to the four paired runs.
+In these first four pairs, planning cost $0.270786 for Sol alone and $0.276100 for the handoff. The three remaining turns cost $2.205579 with Sol and $0.170590 with Luna. The handoff used 139 model calls versus 134 for Sol alone.
 
 For historical context, Plan 13 recorded **6/12 at $0.182398** for Luna alone and **9/12 at $2.177165** for Sol alone on the same tasks. Those runs used an earlier workflow and toolset. Changes in the self-test tools, prompts, and model assignment all contribute to the difference between those historical baselines and Plan 16. [Historical comparison](../decisions/013-task-discrimination-and-calibration.md)
 

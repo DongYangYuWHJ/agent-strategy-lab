@@ -35,7 +35,7 @@
 | [013](decisions/013-task-discrimination-and-calibration.md) | 任务区分度、benchmark 调研与任务集校准 | 网络恢复后单项补跑完成，架构36项有效验收；Sol 9/12、Luna 6/12、交接5/12，首轮质量收益未保持；旧中断及未知费用保留 | 任务区分度、可靠性、分工成本与独立评估 |
 | [014](decisions/014-planner-executor-reviewer.md) | 轨迹诊断与 Plan → Execute → Review | 48次固定输入修正对照：Sol21/24、Luna19/24；修复均12/15，新增失败尝试0对4，总费用$1.643238235 | 区分修复与回归、固定输入重复、共享审查费用不计作整段架构节约 |
 | [015](decisions/015-revision-model-comparison.md) | 修正模型对照与成本收益 | 已记录：两者修复率相同、最终通过数差2次；Sol避免回归更稳，费用约12.75倍，尚不据此换模型 | 区分效果差距、稳定性与费用；局部实验不替代完整架构比较 |
-| [016](decisions/016-planned-self-tests-and-review.md) | Planner规划测试、Executor自测、Reviewer验收 | 24个位置完成验收，Luna自查11/12、Sol独立审查12/12，附历史单体基线 | 职责与权限配合、独立需求核对、过程证据与最终验收分离 |
+| [016](decisions/016-planned-self-tests-and-review.md) | Planner规划测试、Executor自测、Reviewer验收 | Sol 单体与 Sol 规划加 Luna 自查均通过 11/12，交接费用低约 82%。Sol 独立审查组通过 12/12 | 职责与权限配合、独立需求核对、过程证据与最终验收分离 |
 | [017](decisions/017-role-flexibility-and-permissions.md) | 严格分工与灵活分工 | 24个位置完成验收，两组均11/12，灵活组有效验收费用高28.5% | 区分整体方案与权限单独归因，记录实际分工，保留单Agent参照问题 |
 | [018](decisions/018-review-routing.md) | 按需升级审查 | 已回看12次自查轨迹，检查结果规则升级0次并漏掉1次失败，宽泛文本规则升级全部12次 | 验证具体场景的覆盖证据，区分可见信号与离线验收 |
 | [019](decisions/019-task-and-review-routers.md) | 任务 Router 与审查 Router | 审查试跑三组均3/3，按需组升级3/3，其中一次仅由引用格式触发 | 分开记录格式问题与实际覆盖缺口 |

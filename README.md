@@ -36,14 +36,13 @@ The last command makes paid DeepSeek API calls and uses a **$0.20** batch budget
 
 ## Selected results
 
-**Main result.** On four paired repository tasks, Sol handled the planning turn, then Luna implemented, self-reviewed, and revised in the same session. Both this workflow and Sol alone passed all four tasks. The handoff cost **$0.447 versus $2.476**, about **82% less**. Planning cost was nearly the same. The savings came from moving implementation, review, and revision to Luna. [Four-task comparison](docs/en/results.md#sol-single-agent-comparison-with-the-same-self-test-workflow)
+**Main result.** Sol alone and a workflow in which Sol plans and Luna implements, self-reviews, and revises both passed **11/12** across four repository tasks with three runs per task. The handoff cost **$1.357 versus $7.537**, about **82% less**, and took about eight minutes longer in total. In the first run per task, planning cost was nearly the same and the later turns accounted for the savings. [Four-task comparison](docs/en/results.md#sol-single-agent-comparison-with-the-same-self-test-workflow)
 
 The following comparisons used four related Python repository tasks involving ItsDangerous and Cachetools. A pass means that the delivered code passed every independent acceptance case for its run.
 
 | Comparison | Full passes | Estimated cost of runs with a valid final grade |
 |---|---:|---:|
-| Sol alone with self-tests, one run per task | 4/4 | $2.476 |
-| Sol plans, Luna implements and self-reviews, first run per task | 4/4 | $0.447 |
+| Sol alone with self-tests, three runs per task | 11/12 | $7.537 |
 | Sol plans, Luna implements and self-reviews, three runs per task | 11/12 | $1.357 |
 | Luna plans, implements and self-reviews with a role handoff, three runs per task | 8/12 | $0.585 |
 | Sol plans and independently reviews, Luna implements and revises | 12/12 | $3.869 |
