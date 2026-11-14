@@ -41,5 +41,6 @@ The English summaries below explain the purpose of each plan. Links point to the
 | [018](../decisions/018-review-routing.md) | Replay escalation signals offline and identify gaps in the available test evidence before designing a live comparison. |
 | [019](../decisions/019-task-and-review-routers.md) | Separate task routing before planning from review routing before delivery, and define the comparison for each. |
 | [020](../decisions/020-structure-router-comparison.md) | Completed the 14-task comparison of two-tier task routing, fixed Sol planning, and fixed Luna alone. |
+| [021](../decisions/021-planner-and-subagent-comparisons.md) | Plan a Luna versus Sol planner comparison with Sol in the remaining roles, compare handoffs and subagents with review first, and route user questions to a planner and implementation requests to an executor. |
 
 When adding a decision, describe the question, experiment design, observed results, costs, and remaining uncertainty. Use the saved run configuration for exact execution settings. Keep interrupted attempts in the accounting and distinguish a proposed change from one that has been implemented or tested.

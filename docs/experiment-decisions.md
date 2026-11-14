@@ -40,6 +40,7 @@
 | [018](decisions/018-review-routing.md) | 按需升级审查 | 已回看12次自查轨迹，检查结果规则升级0次并漏掉1次失败，宽泛文本规则升级全部12次 | 验证具体场景的覆盖证据，区分可见信号与离线验收 |
 | [019](decisions/019-task-and-review-routers.md) | 任务 Router 与审查 Router | 审查试跑三组均3/3，按需组升级3/3，其中一次仅由引用格式触发 | 分开记录格式问题与实际覆盖缺口 |
 | [020](decisions/020-structure-router-comparison.md) | 两档任务 Router | 14 题三组对照均完成 | 相对固定 Sol 规划省 25.3%，相对固定 Luna 单体通过结果一致、费用更高 |
+| [021](decisions/021-planner-and-subagent-comparisons.md) | Planner 对照、子会话与交互路由 | 已记录设计，待验证 | 固定 Sol 实施与审查来比较 Planner，比较 handoff 和 subagent，按用户意图区分咨询与实施 |
 
 ## 调参集为什么借鉴机器学习
 
